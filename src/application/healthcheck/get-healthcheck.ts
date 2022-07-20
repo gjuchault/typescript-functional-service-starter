@@ -1,6 +1,6 @@
 import os from "node:os";
 import v8 from "node:v8";
-import * as A from "fp-ts/lib/Apply";
+import * as Apply from "fp-ts/lib/Apply";
 import * as F from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
@@ -45,7 +45,7 @@ export function getHealthcheck({
     F.pipe(v8.getHeapStatistics(), getMemoryUsage, getSystemMetricHealthiness)
   );
 
-  return A.sequenceS(T.ApplyPar)({
+  return Apply.sequenceS(T.ApplyPar)({
     database: getDatabaseHealthcheck,
     cache: getCacheHealthcheck,
     systemMemory: getSystemMemoryHealthcheck,
