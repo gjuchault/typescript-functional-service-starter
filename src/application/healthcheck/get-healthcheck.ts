@@ -23,7 +23,6 @@ export function getHealthcheck({
   healthcheckRepository,
   cache,
 }: GetHealthcheckContext): T.Task<GetHealthcheckResult> {
-  console.log("HELLO");
   const getDatabaseHealthcheck = F.pipe(
     healthcheckRepository.getHealthcheck(),
     T.map((result) => result.outcome)
@@ -44,10 +43,6 @@ export function getHealthcheck({
 
   const getProcessMemoryUsage = T.of(
     F.pipe(v8.getHeapStatistics(), getMemoryUsage, getSystemMetricHealthiness)
-  );
-
-  getDatabaseHealthcheck().then((r) =>
-    console.log("getDatabaseHealthcheck", r)
   );
 
   return A.sequenceS(T.ApplyPar)({
