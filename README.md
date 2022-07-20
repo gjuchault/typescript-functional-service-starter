@@ -113,7 +113,7 @@ Commands:
 
 ### Tests
 
-typescript-library-starter uses [vitest](https://vitest.dev/). The coverage is done through vitest, using [c8](https://github.com/bcoe/c8).
+typescript-functional-service-starter uses [vitest](https://vitest.dev/). The coverage is done through vitest, using [c8](https://github.com/bcoe/c8).
 
 Commands:
 

@@ -1,26 +1,25 @@
-import { createMockPool, createMockQueryResult, sql } from "slonik";
+import { createMockQueryResult } from "slonik";
 import { beforeAll, describe, it, vi, expect } from "vitest";
 import { createHealthcheckRepository, GetHealthcheckResult } from "..";
+import { createMockDatabase } from "../../../test-helpers/mock-database";
 
 describe("getHealthcheck()", () => {
   describe("given a healthy database", () => {
-    const database = createMockPool({
-      query() {
-        return Promise.resolve(createMockQueryResult([]));
-      },
+    const query = vi.fn().mockResolvedValue(createMockQueryResult([]));
+
+    const database = createMockDatabase({
+      query,
     });
 
     const repository = createHealthcheckRepository({
       database,
     });
 
-    const spyQuery = vi.spyOn(database, "query");
-
     describe("when called", () => {
       let result: GetHealthcheckResult;
 
       beforeAll(async () => {
-        result = await repository.getHealthcheck();
+        result = await repository.getHealthcheck()();
       });
 
       it("returns outcome healthy", () => {
@@ -28,30 +27,30 @@ describe("getHealthcheck()", () => {
       });
 
       it("called the database with the appropriate query", () => {
-        expect(spyQuery).toBeCalledTimes(1);
-        expect(spyQuery.mock.calls[0][0]).toEqual(sql`select 1`);
+        expect(query).toBeCalledTimes(1);
+        expect(query.mock.calls[0][0]).toEqual("select 1");
       });
     });
   });
 
   describe("given an unhealthy database", () => {
-    const database = createMockPool({
-      query() {
-        throw new Error("error");
-      },
+    const query = vi.fn().mockImplementation(() => {
+      throw new Error("error");
+    });
+
+    const database = createMockDatabase({
+      query,
     });
 
     const repository = createHealthcheckRepository({
       database,
     });
 
-    const spyQuery = vi.spyOn(database, "query");
-
     describe("when called", () => {
       let result: GetHealthcheckResult;
 
       beforeAll(async () => {
-        result = await repository.getHealthcheck();
+        result = await repository.getHealthcheck()();
       });
 
       it("returns outcome unhealthy", () => {
@@ -59,8 +58,8 @@ describe("getHealthcheck()", () => {
       });
 
       it("called the database with the appropriate query", () => {
-        expect(spyQuery).toBeCalledTimes(1);
-        expect(spyQuery.mock.calls[0][0]).toEqual(sql`select 1`);
+        expect(query).toBeCalledTimes(1);
+        expect(query.mock.calls[0][0]).toEqual("select 1");
       });
     });
   });

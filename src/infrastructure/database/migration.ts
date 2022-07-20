@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import * as E from "fp-ts/lib/Either";
 import { sql, TaggedTemplateLiteralInvocation } from "slonik";
 import { InputMigrations, Umzug } from "umzug";
 import type { Database } from ".";
@@ -12,38 +13,50 @@ export function buildMigration({
   database: Database;
 }) {
   async function ensureTable() {
-    await database.query(sql`
-      create table if not exists "public"."migrations" (
-        "name" varchar, primary key ("name")
-      );
-    `);
+    await database.runInConnection((pool) =>
+      pool.query(sql`
+        create table if not exists "public"."migrations" (
+          "name" varchar, primary key ("name")
+        );
+      `)
+    )();
   }
 
   async function executed() {
     await ensureTable();
-    const migrations = await database.anyFirst<string>(sql`
-      select "name"
-      from "public"."migrations"
-      order by "name" asc;
-    `);
+    const migrationsResult = await database.runInConnection((pool) =>
+      pool.anyFirst<string>(sql`
+        select "name"
+        from "public"."migrations"
+        order by "name" asc;
+      `)
+    )();
 
-    return [...migrations];
+    if (E.isLeft(migrationsResult)) {
+      throw migrationsResult.left;
+    }
+
+    return [...migrationsResult.right];
   }
 
   async function logMigration({ name }: { name: string }) {
-    await database.query(sql`
-      insert into "public"."migrations" ("name")
-      values (${name});
-    `);
+    await database.runInConnection((pool) =>
+      pool.query(sql`
+        insert into "public"."migrations" ("name")
+        values (${name});
+      `)
+    )();
   }
 
   async function unlogMigration({ name }: { name: string }) {
     await ensureTable();
 
-    await database.query(sql`
-      delete from "public"."migrations"
-      where "name" = ${name};
-    `);
+    await database.runInConnection((pool) =>
+      pool.query(sql`
+        delete from "public"."migrations"
+        where "name" = ${name};
+      `)
+    )();
   }
 
   const umzug = new Umzug<Record<never, never>>({
@@ -88,7 +101,7 @@ export async function readMigrations(database: Database) {
         return {
           name: file.slice(file.indexOf("_") + 1, -1 * ".sql".length),
           async up() {
-            await database.query(query);
+            await database.runInConnection((pool) => pool.query(query))();
           },
           async down() {
             // nothing to do

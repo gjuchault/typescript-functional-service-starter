@@ -1,30 +1,34 @@
-import { DatabasePool, sql } from "slonik";
+import * as F from "fp-ts/lib/function";
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
+import { sql } from "slonik";
+import type {
+  Database,
+  DatabasePoolConnection,
+} from "../../infrastructure/database";
 
 export interface HealthcheckRepository {
-  getHealthcheck(): Promise<GetHealthcheckResult>;
+  readonly getHealthcheck: () => T.Task<GetHealthcheckResult>;
 }
 
 export type GetHealthcheckResult =
-  | { outcome: "healthy" }
-  | { outcome: "unhealthy" };
+  | { readonly outcome: "healthy" }
+  | { readonly outcome: "unhealthy" };
 
 export function createHealthcheckRepository({
   database,
 }: {
-  database: DatabasePool;
+  readonly database: Database;
 }): HealthcheckRepository {
-  async function getHealthcheck(): Promise<GetHealthcheckResult> {
-    try {
-      await database.query(sql`select 1`);
-
-      return {
-        outcome: "healthy",
-      };
-    } catch {
-      return {
-        outcome: "unhealthy",
-      };
-    }
+  function getHealthcheck(): T.Task<GetHealthcheckResult> {
+    return F.pipe(
+      (pool: DatabasePoolConnection) => pool.query(sql`select 1`),
+      database.runInConnection,
+      TE.fold<Error, unknown, GetHealthcheckResult>(
+        () => T.of({ outcome: "unhealthy" }),
+        () => T.of({ outcome: "healthy" })
+      )
+    );
   }
 
   return { getHealthcheck };

@@ -1,3 +1,5 @@
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
 import { default as Redis } from "ioredis";
 import ms from "ms";
 import { promiseWithTimeout } from "../helpers/promise-timeout";
@@ -6,16 +8,19 @@ import type { Telemetry } from "../telemetry";
 import { getSpanOptions } from "../telemetry/instrumentations/ioredis";
 
 interface Dependencies {
-  url: string;
-  telemetry: Telemetry;
+  readonly url: string;
+  readonly telemetry: Telemetry;
 }
 
-export type Cache = Redis;
+export interface Cache {
+  readonly echo: (input: string) => TE.TaskEither<Error, string>;
+  readonly quit: () => T.Task<void>;
+}
 
 export async function createCacheStorage({
   url,
   telemetry,
-}: Dependencies): Promise<Cache> {
+}: Dependencies): Promise<{ cache: Cache; redis: Redis }> {
   const logger = createLogger("redis");
 
   const redis = new Redis(url, {});
@@ -45,8 +50,25 @@ export async function createCacheStorage({
 
     logger.info("connected to redis");
 
-    return redis;
+    return { redis, cache: wrapRedisAsFunctional(redis) };
   });
+}
+
+function wrapRedisAsFunctional(redis: Redis): Cache {
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises, @typescript-eslint/unbound-method
+    echo(input: string) {
+      return TE.tryCatch(
+        () => redis.echo(input),
+        (redisError) => redisError as Error
+      );
+    },
+    quit() {
+      return async function () {
+        await redis.quit();
+      };
+    },
+  };
 }
 
 function isRedisError(error: unknown): error is object {

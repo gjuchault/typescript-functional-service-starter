@@ -8,7 +8,7 @@
   "parserOptions": {
     "project": "./tsconfig.lint.json"
   },
-  "plugins": ["import", "@typescript-eslint"],
+  "plugins": ["import", "@typescript-eslint", "functional"],
   "ignorePatterns": ["scripts/*", "types/*", "client/*", "esbuild-hook.js"],
   "extends": [
     "eslint:recommended",
@@ -44,5 +44,24 @@
     "import/no-mutable-exports": "error",
     "import/no-unused-modules": "error",
     "unicorn/prefer-module": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": "src/**/*.ts",
+      "excludedFiles": [
+        "src/index.ts",
+        "*.test.ts",
+        "src/infrastructure/**/*.ts",
+        "src/test-helpers/**/*.ts"
+      ],
+      "extends": [
+        "plugin:functional/external-recommended",
+        "plugin:functional/recommended",
+        "plugin:functional/stylistic"
+      ],
+      "rules": {
+        "functional/functional-parameters": "off"
+      }
+    }
+  ]
 }

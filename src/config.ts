@@ -1,18 +1,19 @@
+import "dotenv/config";
 import { z } from "zod";
 
 import { version, description } from "../package.json";
 
 export interface Config {
-  name: string;
-  version: string;
-  description: string;
-  env: "development" | "production" | "test";
-  logLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace";
-  address: string;
-  secret: string;
-  port: number;
-  databaseUrl: string;
-  redisUrl: string;
+  readonly name: string;
+  readonly version: string;
+  readonly description: string;
+  readonly env: "development" | "production" | "test";
+  readonly logLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace";
+  readonly address: string;
+  readonly secret: string;
+  readonly port: number;
+  readonly databaseUrl: string;
+  readonly redisUrl: string;
 }
 
 const config: Config = {

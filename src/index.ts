@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import "dotenv/config";
+import type { Redis } from "ioredis";
 import { createHealthcheckApplication } from "./application/healthcheck";
 import { Config, getConfig } from "./config";
 import { createCacheStorage, Cache } from "./infrastructure/cache";
@@ -26,21 +26,22 @@ export async function startApp(configOverride: Partial<Config> = {}) {
   });
 
   let database: Database;
+  let redis: Redis;
   let cache: Cache;
   let httpServer: HttpServer;
 
   try {
-    cache = await createCacheStorage({
+    ({ redis, cache } = await createCacheStorage({
       url: config.redisUrl,
       telemetry,
-    });
+    }));
 
     database = await createDatabase({
       url: config.databaseUrl,
       telemetry,
     });
 
-    httpServer = await createHttpServer({ config, cache, telemetry });
+    httpServer = await createHttpServer({ config, redis, telemetry });
   } catch (error) {
     logger.error(`${config.name} startup error`, {
       error: (error as Record<string, unknown>).message ?? error,

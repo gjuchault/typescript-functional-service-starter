@@ -1,22 +1,28 @@
-import type { Redis } from "ioredis";
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
 import { beforeAll, describe, it, vi, expect } from "vitest";
+import type { Cache } from "../../../infrastructure/cache";
 import type { HealthcheckRepository } from "../../../repository/healthcheck";
 import { getHealthcheck, GetHealthcheckResult } from "../get-healthcheck";
 
-const mockHealthyCache = {
-  echo: vi.fn().mockResolvedValue("1"),
-} as unknown as Redis;
+const mockHealthyCache: Pick<Cache, "echo"> = {
+  echo: vi.fn().mockImplementation((input: string) => TE.right(input)),
+};
 
-const mockUnhealthyCache = {
-  echo: vi.fn().mockRejectedValue(new Error("error")),
-} as unknown as Redis;
+const mockUnhealthyCache: Pick<Cache, "echo"> = {
+  echo: vi.fn().mockImplementation(() => TE.left(new Error("error"))),
+};
 
 const mockHealthyRepository: HealthcheckRepository = {
-  getHealthcheck: vi.fn().mockResolvedValue({ outcome: "healthy" }),
+  getHealthcheck: vi
+    .fn()
+    .mockImplementation(() => T.of({ outcome: "healthy" })),
 };
 
 const mockUnhealthyRepository: HealthcheckRepository = {
-  getHealthcheck: vi.fn().mockResolvedValue({ outcome: "unhealthy" }),
+  getHealthcheck: vi
+    .fn()
+    .mockImplementation(() => T.of({ outcome: "unhealthy" })),
 };
 
 describe("getHealthcheck()", () => {
@@ -28,7 +34,7 @@ describe("getHealthcheck()", () => {
         result = await getHealthcheck({
           cache: mockHealthyCache,
           healthcheckRepository: mockHealthyRepository,
-        });
+        })();
       });
 
       it("returns healthy", () => {
@@ -52,7 +58,7 @@ describe("getHealthcheck()", () => {
         result = await getHealthcheck({
           cache: mockUnhealthyCache,
           healthcheckRepository: mockHealthyRepository,
-        });
+        })();
       });
 
       it("returns unhealthy cache, healthy database", () => {
@@ -76,7 +82,7 @@ describe("getHealthcheck()", () => {
         result = await getHealthcheck({
           cache: mockHealthyCache,
           healthcheckRepository: mockUnhealthyRepository,
-        });
+        })();
       });
 
       it("returns unhealthy cache, healthy database", () => {
@@ -100,7 +106,7 @@ describe("getHealthcheck()", () => {
         result = await getHealthcheck({
           cache: mockUnhealthyCache,
           healthcheckRepository: mockUnhealthyRepository,
-        });
+        })();
       });
 
       it("returns unhealthy cache, healthy database", () => {
