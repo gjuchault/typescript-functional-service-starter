@@ -1,0 +1,35 @@
+{
+  "version": "0.1",
+  "language": "en",
+  "words": [
+    "esbuild",
+    "rmrf",
+    "gjuchault",
+    "socio",
+    "octocat",
+    "healthcheck",
+    "slonik",
+    "fastify",
+    "formbody",
+    "opentelemetry",
+    "autotelic",
+    "pino",
+    "millis",
+    "eventloop",
+    "openapi",
+    "traceparent",
+    "weakcb",
+    "tablename",
+    "schemaname",
+    "umzug",
+    "unlog"
+  ],
+  "flagWords": [],
+  "ignorePaths": [
+    "package.json",
+    "package-lock.json",
+    "yarn.lock",
+    "tsconfig.json",
+    "node_modules/**"
+  ]
+}
