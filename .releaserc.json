@@ -14,7 +14,7 @@
       "prerelease": true
     }
   ],
-  "repositoryUrl": "https://github.com/gjuchault/typescript-service-starter.git",
+  "repositoryUrl": "https://github.com/gjuchault/typescript-functional-service-starter.git",
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",

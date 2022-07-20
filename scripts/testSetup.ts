@@ -36,7 +36,7 @@ async function testSetup() {
 
 async function test() {
   await testNoGrep("gjuchault");
-  await testNoGrep("typescript-service-starter");
+  await testNoGrep("typescript-functional-service-starter");
   await testNoGrep("template");
 }
 
@@ -44,7 +44,7 @@ async function restore() {
   await exec(`git reset HEAD~ && git checkout . && git clean -df`);
 
   await exec(
-    `git remote add origin git@github.com:gjuchault/typescript-service-starter.git`
+    `git remote add origin git@github.com:gjuchault/typescript-functional-service-starter.git`
   );
 
   await exec(`npm install`);

@@ -6,7 +6,7 @@ env:
   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
 jobs:
-  typescript-service-starter:
+  typescript-functional-service-starter:
     runs-on: ubuntu-latest
 
     concurrency:

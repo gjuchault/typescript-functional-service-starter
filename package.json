@@ -1,5 +1,5 @@
 {
-  "name": "@gjuchault/typescript-service-starter",
+  "name": "@gjuchault/typescript-functional-service-starter",
   "version": "0.0.0-development",
   "description": "Yet another typescript service starter template",
   "keywords": [
@@ -8,10 +8,10 @@
     "starter",
     "template"
   ],
-  "homepage": "https://github.com/gjuchault/typescript-service-starter",
-  "bugs": "https://github.com/gjuchault/typescript-service-starter/issues",
+  "homepage": "https://github.com/gjuchault/typescript-functional-service-starter",
+  "bugs": "https://github.com/gjuchault/typescript-functional-service-starter/issues",
   "author": "Gabriel Juchault <gabriel.juchault@gmail.com>",
-  "repository": "gjuchault/typescript-service-starter",
+  "repository": "gjuchault/typescript-functional-service-starter",
   "main": "./build/index.js",
   "types": "./build/src/index.d.ts",
   "license": "MIT",
