@@ -1,0 +1,9 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "license": "MIT",
+  "peerDependencies": {
+    "zod": "3"
+  }
+}

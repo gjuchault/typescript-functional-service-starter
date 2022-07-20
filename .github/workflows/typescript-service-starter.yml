@@ -1,0 +1,90 @@
+name: Typescript Service Starter
+
+on: [push]
+
+env:
+  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+jobs:
+  typescript-service-starter:
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: ${{ github.ref }}
+      cancel-in-progress: true
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pwd
+          POSTGRES_DB: db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: --entrypoint redis-server
+
+    steps:
+      - name: Build services urls
+        run: |
+          echo "DATABASE_URL=postgres://user:pwd@localhost:${{ job.services.postgres.ports[5432] }}/db" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://localhost:${{ job.services.redis.ports[6379] }}" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v2
+      - uses: volta-cli/action@v1
+      - run: npm ci
+
+      - name: Dependencies audit
+        run: npm audit
+
+      - name: Build
+        run: npm run build
+
+      - name: Generate client
+        run: npm run build:client
+        env:
+          NODE_ENV: development
+          LOG_LEVEL: error
+          PORT: 8080
+          ADDRESS: 0.0.0.0
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          REDIS_URL: ${{ env.REDIS_URL }}
+          SECRET: 00000000-0000-0000-0000-000000000000
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint check
+        run: npm run lint:check
+
+      - name: Spell check
+        run: npm run spell:check
+
+      - name: Test
+        run: npm run test
+        env:
+          NODE_ENV: test
+          LOG_LEVEL: error
+          PORT: 8080
+          ADDRESS: 0.0.0.0
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          REDIS_URL: ${{ env.REDIS_URL }}
+          SECRET: 00000000-0000-0000-0000-000000000000
+
+      - name: Setup test
+        run: npm run test:setup
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm run semantic-release
