@@ -23,13 +23,13 @@ import {
 } from "fastify";
 import type { RouteGenericInterface } from "fastify/types/route";
 import type { ResolveFastifyReplyType } from "fastify/types/type-provider";
+import type { Redis } from "ioredis";
 import ms from "ms";
 import type { ZodType } from "zod";
 import type { Config } from "../../config";
 import { createLogger } from "../../infrastructure/logger";
 import { openTelemetryPluginOptions } from "../../infrastructure/telemetry/instrumentations/fastify";
 import { metricsPlugin } from "../../infrastructure/telemetry/metrics/fastify";
-import type { Cache } from "../cache";
 import type { Telemetry } from "../telemetry";
 import {
   serializerCompiler,
@@ -69,11 +69,11 @@ const requestTimeout = ms("120s");
 
 export async function createHttpServer({
   config: { secret, name, version, description },
-  cache,
+  redis,
   telemetry,
 }: {
   config: Config;
-  cache: Cache;
+  redis: Redis;
   telemetry: Telemetry;
 }) {
   const logger = createLogger("http");
@@ -100,9 +100,7 @@ export async function createHttpServer({
   await httpServer.register(helmet);
   await httpServer.register(formbody);
   await httpServer.register(multipart);
-  await httpServer.register(rateLimit, {
-    redis: cache,
-  });
+  await httpServer.register(rateLimit, { redis });
   await httpServer.register(underPressure);
 
   await httpServer.register(swagger, {

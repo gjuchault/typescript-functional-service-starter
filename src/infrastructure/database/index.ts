@@ -1,5 +1,12 @@
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
 import ms from "ms";
-import { sql, createPool, DatabasePool } from "slonik";
+import { sql, createPool } from "slonik";
+import {
+  ConnectionRoutine,
+  DatabasePool,
+  TransactionFunction,
+} from "slonik/dist/src/types";
 import { createLogger } from "../logger";
 import type { Telemetry } from "../telemetry";
 import {
@@ -12,7 +19,17 @@ interface Dependencies {
   telemetry: Telemetry;
 }
 
-export type Database = DatabasePool;
+export interface Database {
+  readonly runInConnection: <Result>(
+    callback: ConnectionRoutine<Result>
+  ) => TE.TaskEither<Error, Result>;
+  readonly runInTransaction: <Result>(
+    callback: TransactionFunction<Result>
+  ) => TE.TaskEither<Error, Result>;
+  readonly end: () => T.Task<void>;
+}
+
+export { DatabasePoolConnection } from "slonik";
 
 export async function createDatabase({
   url,
@@ -36,7 +53,29 @@ export async function createDatabase({
 
       logger.info(`connected to database`);
 
-      return pool;
+      return wrapSlonikAsFunctional(pool);
     }
   );
+}
+
+export function wrapSlonikAsFunctional(pool: DatabasePool): Database {
+  return {
+    runInConnection(callback) {
+      return TE.tryCatch(
+        async () => pool.connect(callback),
+        (error) => error as Error
+      );
+    },
+    runInTransaction(callback) {
+      return TE.tryCatch(
+        async () => pool.transaction(callback),
+        (error) => error as Error
+      );
+    },
+    end() {
+      return async function () {
+        await pool.end();
+      };
+    },
+  };
 }

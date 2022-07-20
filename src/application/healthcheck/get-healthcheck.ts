@@ -1,42 +1,67 @@
 import os from "node:os";
 import v8 from "node:v8";
-import type { Redis } from "ioredis";
+import * as A from "fp-ts/lib/Apply";
+import * as F from "fp-ts/lib/function";
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
+import type { Cache } from "../../infrastructure/cache";
 import type { HealthcheckRepository } from "../../repository/healthcheck";
 
-export interface GetHealthcheckResult {
-  database: "healthy" | "unhealthy";
-  cache: "healthy" | "unhealthy";
-  systemMemory: "healthy" | "unhealthy";
-  processMemory: "healthy" | "unhealthy";
+export interface GetHealthcheckContext {
+  readonly healthcheckRepository: HealthcheckRepository;
+  readonly cache: Pick<Cache, "echo">;
 }
 
-export async function getHealthcheck({
+export interface GetHealthcheckResult {
+  readonly database: "healthy" | "unhealthy";
+  readonly cache: "healthy" | "unhealthy";
+  readonly systemMemory: "healthy" | "unhealthy";
+  readonly processMemory: "healthy" | "unhealthy";
+}
+
+export function getHealthcheck({
   healthcheckRepository,
   cache,
-}: {
-  healthcheckRepository: HealthcheckRepository;
-  cache: Redis;
-}): Promise<GetHealthcheckResult> {
-  const databaseResult = await healthcheckRepository.getHealthcheck();
+}: GetHealthcheckContext): T.Task<GetHealthcheckResult> {
+  console.log("HELLO");
+  const getDatabaseHealthcheck = F.pipe(
+    healthcheckRepository.getHealthcheck(),
+    T.map((result) => result.outcome)
+  );
 
-  let cacheResult: "healthy" | "unhealthy" = "healthy";
+  const getCacheHealthcheck = F.pipe(
+    "1",
+    cache.echo,
+    TE.fold<Error, string, "healthy" | "unhealthy">(
+      () => T.of("unhealthy"),
+      () => T.of("healthy")
+    )
+  );
 
-  try {
-    await cache.echo("1");
-  } catch {
-    cacheResult = "unhealthy";
-  }
+  const getSystemMemoryHealthcheck = T.of(
+    F.pipe(os.freemem() / os.totalmem(), getSystemMetricHealthiness)
+  );
 
-  const systemMemoryUsage = os.freemem() / os.totalmem();
+  const getProcessMemoryUsage = T.of(
+    F.pipe(v8.getHeapStatistics(), getMemoryUsage, getSystemMetricHealthiness)
+  );
 
-  const v8HeapStatistics = v8.getHeapStatistics();
-  const processMemoryUsage =
-    v8HeapStatistics.total_heap_size / v8HeapStatistics.heap_size_limit;
+  getDatabaseHealthcheck().then((r) =>
+    console.log("getDatabaseHealthcheck", r)
+  );
 
-  return {
-    database: databaseResult.outcome,
-    cache: cacheResult,
-    systemMemory: systemMemoryUsage > 0.8 ? "unhealthy" : "healthy",
-    processMemory: processMemoryUsage > 0.8 ? "unhealthy" : "healthy",
-  };
+  return A.sequenceS(T.ApplyPar)({
+    database: getDatabaseHealthcheck,
+    cache: getCacheHealthcheck,
+    systemMemory: getSystemMemoryHealthcheck,
+    processMemory: getProcessMemoryUsage,
+  });
+}
+
+function getSystemMetricHealthiness(value: number): "healthy" | "unhealthy" {
+  return value > 0.8 ? "unhealthy" : "healthy";
+}
+
+function getMemoryUsage(heapStatistics: Readonly<v8.HeapInfo>) {
+  return heapStatistics.total_heap_size / heapStatistics.heap_size_limit;
 }

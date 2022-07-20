@@ -49,9 +49,9 @@ export function createShutdownManager({
     async function gracefulShutdown() {
       await httpTerminator.terminate();
       logger.debug("http server shut down");
-      await database.end();
+      await database.end()();
       logger.debug("database shut down");
-      await cache.quit();
+      await cache.quit()();
       logger.debug("cache shut down");
       await telemetry.shutdown();
       context.disable();

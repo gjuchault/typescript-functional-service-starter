@@ -9,11 +9,12 @@ import {
   buildMigration,
   readMigrations,
 } from "../src/infrastructure/database/migration";
+import { wrapSlonikAsFunctional } from "../src/infrastructure/database";
 
 const migrationsPath = path.join(__dirname, "../migrations");
 
 export async function migrate(args = process.argv.slice(2), exit = true) {
-  const database = createPool(getConfig().databaseUrl);
+  const database = wrapSlonikAsFunctional(createPool(getConfig().databaseUrl));
   const migrationFiles = await readMigrations(database);
   const umzug = buildMigration({
     migrationFiles,
