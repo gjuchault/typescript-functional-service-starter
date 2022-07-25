@@ -2,7 +2,7 @@ import { context, trace } from "@opentelemetry/api";
 import { createHttpTerminator } from "http-terminator";
 import ms from "ms";
 import type { Config } from "../../config";
-import type { HttpServer } from "../../infrastructure/http";
+import type { FastifyServer } from "../../infrastructure/http";
 import type { Cache } from "../cache";
 import type { Database } from "../database";
 import { promiseWithTimeout } from "../helpers/promise-timeout";
@@ -11,7 +11,7 @@ import type { Telemetry } from "../telemetry";
 
 interface Dependencies {
   logger: Logger;
-  httpServer: HttpServer;
+  fastify: FastifyServer;
   database: Database;
   cache: Cache;
   telemetry: Telemetry;
@@ -21,7 +21,7 @@ interface Dependencies {
 
 export function createShutdownManager({
   logger,
-  httpServer,
+  fastify,
   database,
   cache,
   telemetry,
@@ -29,7 +29,7 @@ export function createShutdownManager({
   exit,
 }: Dependencies) {
   const httpTerminator = createHttpTerminator({
-    server: httpServer.server,
+    server: fastify.server,
     gracefulTerminationTimeout: ms("10s"),
   });
 

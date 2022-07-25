@@ -47,7 +47,7 @@ async function startAppAndFetchSchema() {
     logLevel: "error",
   });
 
-  const response = await app.httpServer.inject("/docs");
+  const response = await app.fastify.inject("/docs");
   const schema = response.json();
 
   await app.shutdown.shutdown(false);

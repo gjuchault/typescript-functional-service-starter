@@ -1,5 +1,5 @@
 import { ClientConfiguration, createMockPool, MockPoolOverrides } from "slonik";
-import { wrapSlonikAsFunctional } from "../infrastructure/database";
+import { makeSlonikFunctionalWrapper } from "../infrastructure/database";
 
 export function createMockDatabase(
   overrides: MockPoolOverrides,
@@ -7,5 +7,5 @@ export function createMockDatabase(
 ) {
   const mockPool = createMockPool(overrides, clientConfigurationInput);
 
-  return wrapSlonikAsFunctional(mockPool);
+  return makeSlonikFunctionalWrapper(mockPool);
 }

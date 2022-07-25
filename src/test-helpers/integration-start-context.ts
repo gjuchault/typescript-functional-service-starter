@@ -6,9 +6,9 @@ import {
   buildMigration,
   readMigrations,
 } from "../infrastructure/database/migration";
-import type { HttpServer } from "../infrastructure/http";
+import type { FastifyServer } from "../infrastructure/http";
 
-let http: HttpServer | undefined;
+let http: FastifyServer | undefined;
 
 export function getHttpTestContext() {
   if (!http) {
@@ -26,7 +26,7 @@ beforeAll(async () => {
 
   const {
     database,
-    httpServer,
+    fastify: httpServer,
     shutdown: { shutdown },
   } = app;
 

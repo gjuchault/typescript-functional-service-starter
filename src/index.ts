@@ -4,7 +4,11 @@ import { createHealthcheckApplication } from "./application/healthcheck";
 import { Config, getConfig } from "./config";
 import { createCacheStorage, Cache } from "./infrastructure/cache";
 import { createDatabase, Database } from "./infrastructure/database";
-import { createHttpServer, HttpServer } from "./infrastructure/http";
+import {
+  createHttpServer,
+  HttpServer,
+  FastifyServer,
+} from "./infrastructure/http";
 import { createLogger } from "./infrastructure/logger";
 import { createShutdownManager } from "./infrastructure/shutdown";
 import { createTelemetry } from "./infrastructure/telemetry";
@@ -29,6 +33,7 @@ export async function startApp(configOverride: Partial<Config> = {}) {
   let redis: Redis;
   let cache: Cache;
   let httpServer: HttpServer;
+  let fastify: FastifyServer;
 
   try {
     ({ redis, cache } = await createCacheStorage({
@@ -41,7 +46,11 @@ export async function startApp(configOverride: Partial<Config> = {}) {
       telemetry,
     });
 
-    httpServer = await createHttpServer({ config, redis, telemetry });
+    ({ fastify, httpServer } = await createHttpServer({
+      config,
+      redis,
+      telemetry,
+    }));
   } catch (error) {
     logger.error(`${config.name} startup error`, {
       error: (error as Record<string, unknown>).message ?? error,
@@ -64,7 +73,7 @@ export async function startApp(configOverride: Partial<Config> = {}) {
     logger,
     cache,
     database,
-    httpServer,
+    fastify,
     telemetry,
     config,
     exit: (statusCode?: number) => process.exit(statusCode),
@@ -72,7 +81,7 @@ export async function startApp(configOverride: Partial<Config> = {}) {
 
   shutdown.listenToProcessEvents();
 
-  const listeningAbsoluteUrl = await httpServer.listen({
+  const listeningAbsoluteUrl = await fastify.listen({
     host: config.address,
     port: config.port,
   });
@@ -87,6 +96,7 @@ export async function startApp(configOverride: Partial<Config> = {}) {
 
   return {
     httpServer,
+    fastify,
     database,
     cache,
     shutdown,

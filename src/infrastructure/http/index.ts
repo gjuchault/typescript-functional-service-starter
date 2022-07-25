@@ -13,16 +13,21 @@ import swagger from "@fastify/swagger";
 import underPressure from "@fastify/under-pressure";
 import {
   ContextConfigDefault,
-  fastify,
+  fastify as createFastify,
   FastifyBaseLogger,
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
+  HTTPMethods,
   RawReplyDefaultExpression,
   RawRequestDefaultExpression,
 } from "fastify";
 import type { RouteGenericInterface } from "fastify/types/route";
 import type { ResolveFastifyReplyType } from "fastify/types/type-provider";
+import * as E from "fp-ts/lib/Either";
+import * as F from "fp-ts/lib/function";
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
 import type { Redis } from "ioredis";
 import ms from "ms";
 import type { ZodType } from "zod";
@@ -38,7 +43,29 @@ import {
   ZodTypeProvider,
 } from "./fastify-zod";
 
-export type HttpServer = FastifyInstance<
+export interface HttpServer {
+  readonly createRoute: ({
+    method,
+    url,
+    schema,
+    handler,
+  }: {
+    method: HTTPMethods | HTTPMethods[];
+    url: string;
+    schema: Schema;
+    handler: (request: FastifyRequest) => HandlerResult;
+  }) => HttpServer;
+}
+
+interface Response {
+  readonly status: number;
+  readonly body: unknown;
+  readonly headers?: Record<string, string>;
+}
+
+type HandlerResult = TE.TaskEither<Error, Response> | T.Task<Response>;
+
+export type FastifyServer = FastifyInstance<
   Server,
   IncomingMessage,
   ServerResponse,
@@ -78,7 +105,7 @@ export async function createHttpServer({
 }) {
   const logger = createLogger("http");
 
-  const httpServer: HttpServer = fastify({
+  const fastify: FastifyServer = createFastify({
     requestTimeout,
     logger: undefined,
     requestIdHeader: "x-request-id",
@@ -87,23 +114,23 @@ export async function createHttpServer({
     },
   }).withTypeProvider<ZodTypeProvider>();
 
-  httpServer.setValidatorCompiler(validatorCompiler);
-  httpServer.setSerializerCompiler(serializerCompiler);
+  fastify.setValidatorCompiler(validatorCompiler);
+  fastify.setSerializerCompiler(serializerCompiler);
 
-  await httpServer.register(openTelemetryPlugin, openTelemetryPluginOptions);
-  await httpServer.register(metricsPlugin, telemetry);
+  await fastify.register(openTelemetryPlugin, openTelemetryPluginOptions);
+  await fastify.register(metricsPlugin, telemetry);
 
-  await httpServer.register(circuitBreaker);
-  await httpServer.register(cookie, { secret });
-  await httpServer.register(cors);
-  await httpServer.register(etag);
-  await httpServer.register(helmet);
-  await httpServer.register(formbody);
-  await httpServer.register(multipart);
-  await httpServer.register(rateLimit, { redis });
-  await httpServer.register(underPressure);
+  await fastify.register(circuitBreaker);
+  await fastify.register(cookie, { secret });
+  await fastify.register(cors);
+  await fastify.register(etag);
+  await fastify.register(helmet);
+  await fastify.register(formbody);
+  await fastify.register(multipart);
+  await fastify.register(rateLimit, { redis });
+  await fastify.register(underPressure);
 
-  await httpServer.register(swagger, {
+  await fastify.register(swagger, {
     routePrefix: "/docs",
     openapi: {
       info: {
@@ -125,17 +152,17 @@ export async function createHttpServer({
     transform: swaggerTransform,
   });
 
-  httpServer.setNotFoundHandler(
+  fastify.setNotFoundHandler(
     {
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      preHandler: httpServer.rateLimit(),
+      preHandler: fastify.rateLimit(),
     },
     function (_request, reply) {
       void reply.code(404).send();
     }
   );
 
-  httpServer.addHook("onRequest", (request, _response, done) => {
+  fastify.addHook("onRequest", (request, _response, done) => {
     logger.debug(`http request: ${request.method} ${request.url}`, {
       requestId: getRequestId(request),
       method: request.method,
@@ -147,7 +174,7 @@ export async function createHttpServer({
     done();
   });
 
-  httpServer.addHook("onResponse", (request, reply, done) => {
+  fastify.addHook("onResponse", (request, reply, done) => {
     logger.debug(
       `http reply: ${request.method} ${request.url} ${reply.statusCode}`,
       {
@@ -164,7 +191,7 @@ export async function createHttpServer({
     done();
   });
 
-  httpServer.addHook("onError", (request, reply, error, done) => {
+  fastify.addHook("onError", (request, reply, error, done) => {
     logger.error(`http error (${error.code}): ${error.name} ${error.message}`, {
       requestId: getRequestId(request),
       error: {
@@ -184,6 +211,62 @@ export async function createHttpServer({
     done();
   });
 
+  return {
+    fastify: fastify,
+    httpServer: makeFastifyFunctionalWrapper(fastify),
+  };
+}
+
+// This is overridden by fastify-swagger
+interface Schema {
+  readonly description?: string;
+  readonly body?: unknown;
+  readonly querystring?: unknown;
+  readonly params?: unknown;
+  readonly headers?: unknown;
+  readonly response?: unknown;
+}
+
+export function makeFastifyFunctionalWrapper(
+  fastify: FastifyServer
+): HttpServer {
+  const httpServer = {
+    createRoute({
+      handler,
+      method,
+      url,
+      schema,
+    }: {
+      handler: (request: FastifyRequest) => HandlerResult;
+      method: HTTPMethods | HTTPMethods[];
+      url: string;
+      schema: Schema;
+    }) {
+      fastify.route({
+        async handler(request, reply) {
+          const result = F.pipe(await handler(request)(), ensureEither);
+
+          // TODO: improve error management. ApiError?
+          if (E.isLeft(result)) {
+            await reply.status(500).send(result.left);
+            return;
+          }
+
+          if (result.right.headers) {
+            await reply.headers(result.right.headers);
+          }
+
+          await reply.status(200).send(result.right.body);
+        },
+        method,
+        url,
+        schema,
+      });
+
+      return httpServer;
+    },
+  };
+
   return httpServer;
 }
 
@@ -193,4 +276,14 @@ function getRequestId(request: FastifyRequest): string | undefined {
   }
 
   return undefined;
+}
+
+function ensureEither(
+  either: Response | E.Either<Error, Response>
+): E.Either<Error, Response> {
+  if ("_tag" in either) {
+    return either;
+  }
+
+  return E.of(either);
 }

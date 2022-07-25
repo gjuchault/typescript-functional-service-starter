@@ -50,13 +50,12 @@ export async function createCacheStorage({
 
     logger.info("connected to redis");
 
-    return { redis, cache: wrapRedisAsFunctional(redis) };
+    return { redis, cache: makeRedisFunctionalWrapper(redis) };
   });
 }
 
-function wrapRedisAsFunctional(redis: Redis): Cache {
+function makeRedisFunctionalWrapper(redis: Redis): Cache {
   return {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises, @typescript-eslint/unbound-method
     echo(input: string) {
       return TE.tryCatch(
         () => redis.echo(input),
