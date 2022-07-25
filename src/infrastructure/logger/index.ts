@@ -1,15 +1,16 @@
 import { pino, Logger as PinoLogger } from "pino";
-import { getConfig } from "../../config";
+import type { Config } from "../../config";
 import { pinoMixin as telemetryMixin } from "../telemetry/instrumentations/pino";
 
 export type Logger = PinoLogger;
 
-export function createLogger(serviceName: string): Logger {
-  const { logLevel } = getConfig();
-
+export function createLogger(
+  serviceName: string,
+  { config }: { config: Config }
+): Logger {
   const logger = pino({
     name: "app",
-    level: logLevel,
+    level: config.logLevel,
     formatters: {
       // format level as string instead of number
       level(label) {

@@ -95,7 +95,7 @@ export type HttpReply = FastifyReply<
 const requestTimeout = ms("120s");
 
 export async function createHttpServer({
-  config: { secret, name, version, description },
+  config,
   redis,
   telemetry,
 }: {
@@ -103,7 +103,7 @@ export async function createHttpServer({
   redis: Redis;
   telemetry: Telemetry;
 }) {
-  const logger = createLogger("http");
+  const logger = createLogger("http", { config });
 
   const fastify: FastifyServer = createFastify({
     requestTimeout,
@@ -121,7 +121,7 @@ export async function createHttpServer({
   await fastify.register(metricsPlugin, telemetry);
 
   await fastify.register(circuitBreaker);
-  await fastify.register(cookie, { secret });
+  await fastify.register(cookie, { secret: config.secret });
   await fastify.register(cors);
   await fastify.register(etag);
   await fastify.register(helmet);
@@ -134,9 +134,9 @@ export async function createHttpServer({
     routePrefix: "/docs",
     openapi: {
       info: {
-        title: name,
-        description,
-        version,
+        title: config.name,
+        description: config.description,
+        version: config.version,
       },
       externalDocs: {
         url: "https://example.com/docs",
