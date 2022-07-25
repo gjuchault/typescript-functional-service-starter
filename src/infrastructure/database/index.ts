@@ -53,12 +53,12 @@ export async function createDatabase({
 
       logger.info(`connected to database`);
 
-      return wrapSlonikAsFunctional(pool);
+      return makeSlonikFunctionalWrapper(pool);
     }
   );
 }
 
-export function wrapSlonikAsFunctional(pool: DatabasePool): Database {
+export function makeSlonikFunctionalWrapper(pool: DatabasePool): Database {
   return {
     runInConnection(callback) {
       return TE.tryCatch(

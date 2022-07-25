@@ -1,7 +1,6 @@
 import camelCase from "camelcase";
 import { compile as jsonSchemaToInterface } from "json-schema-to-typescript";
 import jsonSchemaToZod from "json-schema-to-zod";
-import type { Entries } from "../../src/helpers/entries";
 import type { Endpoint } from "./endpoint";
 
 interface OpenApi {
