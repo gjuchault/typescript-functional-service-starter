@@ -21,8 +21,9 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import type { Config } from "../../config";
+import { createLogger } from "../logger";
 import { bindSystemMetrics } from "./metrics/system";
-import { pinoSpanExporter } from "./pino-exporter";
+import { createPinoSpanExporter } from "./pino-exporter";
 
 export interface Telemetry {
   metrics: Meter;
@@ -45,8 +46,12 @@ export async function createTelemetry({
 }: {
   config: Config;
 }): Promise<Telemetry> {
+  const logger = createLogger("telemetry", { config });
+
   const traceExporter: SpanExporter =
-    config.env === "production" ? pinoSpanExporter : new InMemorySpanExporter();
+    config.env === "production"
+      ? createPinoSpanExporter({ logger })
+      : new InMemorySpanExporter();
 
   const metricReader = new PrometheusExporter({
     preventServerStart: true,
