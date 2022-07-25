@@ -5,6 +5,7 @@ import * as S from "fp-ts/lib/string";
 import * as T from "fp-ts/lib/Task";
 import { z } from "zod";
 import type { HealthcheckApplication } from "../../../../application/healthcheck";
+import { GetHealthcheckResult } from "../../../../application/healthcheck/get-healthcheck";
 import type { HttpServer } from "../../../../infrastructure/http";
 
 const healthcheckResponseSchema = z.object({
@@ -38,23 +39,10 @@ export function bindHealthcheckRoutes({
       handler() {
         const getHealthcheck = healthcheckApplication.getHealthcheck();
 
-        const getStatus = F.pipe(
-          getHealthcheck,
-          T.map((healthcheck) => {
-            return F.pipe(
-              { ...healthcheck },
-              // eslint-disable-next-line unicorn/no-array-reduce, unicorn/no-array-callback-reference
-              R.reduce(S.Ord)(200, (accumulator, statusEntry) =>
-                statusEntry !== "healthy" || accumulator === 500
-                  ? 500
-                  : accumulator
-              )
-            );
-          })
-        );
+        const computeStatus = getComputeStatus({ getHealthcheck });
 
         return A.sequenceS(T.ApplyPar)({
-          status: getStatus,
+          status: computeStatus,
           body: F.pipe(
             getHealthcheck,
             T.map((healthcheck) => ({ ...healthcheck, http: "healthy" }))
@@ -63,4 +51,23 @@ export function bindHealthcheckRoutes({
       },
     });
   };
+}
+
+export function getComputeStatus({
+  getHealthcheck,
+}: {
+  readonly getHealthcheck: T.Task<GetHealthcheckResult>;
+}): T.Task<number> {
+  return F.pipe(
+    getHealthcheck,
+    T.map((healthcheck) => {
+      return F.pipe(
+        { ...healthcheck },
+        // eslint-disable-next-line unicorn/no-array-reduce, unicorn/no-array-callback-reference
+        R.reduce(S.Ord)(200, (accumulator, statusEntry) =>
+          statusEntry !== "healthy" || accumulator === 500 ? 500 : accumulator
+        )
+      );
+    })
+  );
 }
