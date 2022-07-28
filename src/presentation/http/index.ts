@@ -1,4 +1,4 @@
-import * as F from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import { z } from "zod";
 import type { HealthcheckApplication } from "../../application/healthcheck";
@@ -12,7 +12,7 @@ export function bindHttpRoutes({
   readonly httpServer: HttpServer;
   readonly healthcheckApplication: HealthcheckApplication;
 }) {
-  return F.pipe(
+  return pipe(
     httpServer,
     bindDocumentationRoute(),
     bindHealthcheckRoutes({ healthcheckApplication })

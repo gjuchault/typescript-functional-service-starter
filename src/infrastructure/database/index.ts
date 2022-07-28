@@ -1,4 +1,4 @@
-import * as T from "fp-ts/lib/Task";
+import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import ms from "ms";
 import { sql, createPool } from "slonik";
@@ -27,7 +27,7 @@ export interface Database {
   readonly runInTransaction: <Result>(
     callback: TransactionFunction<Result>
   ) => TE.TaskEither<Error, Result>;
-  readonly end: () => T.Task<void>;
+  readonly end: () => TE.TaskEither<Error, boolean>;
 }
 
 export { DatabasePoolConnection } from "slonik";
@@ -48,11 +48,11 @@ export async function createDatabase({
     "database.connect",
     getSpanOptions({ pool }),
     async () => {
-      logger.debug(`connecting to database...`);
+      logger.debug(`connecting to database...`)();
 
       await pool.query(sql`select 1`);
 
-      logger.info(`connected to database`);
+      logger.info(`connected to database`)();
 
       return makeSlonikFunctionalWrapper(pool);
     }
@@ -62,21 +62,16 @@ export async function createDatabase({
 export function makeSlonikFunctionalWrapper(pool: DatabasePool): Database {
   return {
     runInConnection(callback) {
-      return TE.tryCatch(
-        async () => pool.connect(callback),
-        (error) => error as Error
-      );
+      return TE.tryCatch(() => pool.connect(callback), E.toError);
     },
     runInTransaction(callback) {
-      return TE.tryCatch(
-        async () => pool.transaction(callback),
-        (error) => error as Error
-      );
+      return TE.tryCatch(() => pool.transaction(callback), E.toError);
     },
     end() {
-      return async function () {
+      return TE.tryCatch(async () => {
         await pool.end();
-      };
+        return true;
+      }, E.toError);
     },
   };
 }

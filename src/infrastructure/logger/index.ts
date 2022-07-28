@@ -1,8 +1,18 @@
+import * as IO from "fp-ts/lib/IO";
 import { pino, Logger as PinoLogger } from "pino";
 import type { Config } from "../../config";
 import { pinoMixin as telemetryMixin } from "../telemetry/instrumentations/pino";
 
-export type Logger = PinoLogger;
+export interface Logger {
+  readonly fatal: (message: string, payload?: unknown) => IO.IO<void>;
+  readonly error: (message: string, payload?: unknown) => IO.IO<void>;
+  readonly warn: (message: string, payload?: unknown) => IO.IO<void>;
+  readonly info: (message: string, payload?: unknown) => IO.IO<void>;
+  readonly debug: (message: string, payload?: unknown) => IO.IO<void>;
+  readonly trace: (message: string, payload?: unknown) => IO.IO<void>;
+  readonly silent: (message: string, payload?: unknown) => IO.IO<void>;
+  readonly flush: () => IO.IO<void>;
+}
 
 export function createLogger(
   serviceName: string,
@@ -18,27 +28,46 @@ export function createLogger(
       },
     },
     timestamp: pino.stdTimeFunctions.isoTime,
-    hooks: {
-      // reverse pino method so it goes logger.method(message, details) instead
-      // of logger.method(details, message)
-      logMethod(inputArguments: unknown[], method) {
-        if (inputArguments.length >= 2) {
-          const argument1 = inputArguments[0];
-          const argument2 = inputArguments[1];
-          return Reflect.apply(method, this, [
-            argument2,
-            argument1,
-            ...inputArguments.slice(2),
-          ]) as unknown;
-        }
-
-        return method.apply(this, inputArguments as [string, ...unknown[]]);
-      },
-    },
     mixin: telemetryMixin,
-  });
-
-  return logger.child({
+  }).child({
     serviceName,
   });
+
+  return makePinoFunctionalWrapper(logger);
+}
+
+function makePinoFunctionalWrapper(logger: PinoLogger) {
+  return {
+    fatal(message: string, payload?: unknown) {
+      return () => logger.fatal(payload, message);
+    },
+
+    error(message: string, payload?: unknown) {
+      return () => logger.error(payload, message);
+    },
+
+    warn(message: string, payload?: unknown) {
+      return () => logger.warn(payload, message);
+    },
+
+    info(message: string, payload?: unknown) {
+      return () => logger.info(payload, message);
+    },
+
+    debug(message: string, payload?: unknown) {
+      return () => logger.debug(payload, message);
+    },
+
+    trace(message: string, payload?: unknown) {
+      return () => logger.trace(payload, message);
+    },
+
+    silent(message: string, payload?: unknown) {
+      return () => logger.silent(payload, message);
+    },
+
+    flush() {
+      return () => logger.flush();
+    },
+  };
 }

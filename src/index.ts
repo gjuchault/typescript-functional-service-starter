@@ -27,7 +27,7 @@ export async function startApp(configOverride: Partial<Config> = {}) {
     nodeVersion: process.version,
     arch: process.arch,
     platform: process.platform,
-  });
+  })();
 
   let database: Database;
   let redis: Redis;
@@ -54,7 +54,7 @@ export async function startApp(configOverride: Partial<Config> = {}) {
   } catch (error) {
     logger.error(`${config.name} startup error`, {
       error: (error as Record<string, unknown>).message ?? error,
-    });
+    })();
     process.exit(1);
   }
 
@@ -92,7 +92,7 @@ export async function startApp(configOverride: Partial<Config> = {}) {
     arch: process.arch,
     platform: process.platform,
     startupTime: Date.now() - appStartedTimestamp,
-  });
+  })();
 
   return {
     httpServer,
