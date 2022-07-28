@@ -25,7 +25,7 @@ import {
 import type { RouteGenericInterface } from "fastify/types/route";
 import type { ResolveFastifyReplyType } from "fastify/types/type-provider";
 import * as E from "fp-ts/lib/Either";
-import * as F from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
 import type { Redis } from "ioredis";
@@ -169,7 +169,7 @@ export async function createHttpServer({
       url: request.url,
       route: request.routerPath,
       userAgent: request.headers["user-agent"],
-    });
+    })();
 
     done();
   });
@@ -186,7 +186,7 @@ export async function createHttpServer({
         responseTime: Math.ceil(reply.getResponseTime()),
         httpStatusCode: reply.statusCode,
       }
-    );
+    )();
 
     done();
   });
@@ -206,7 +206,7 @@ export async function createHttpServer({
       userAgent: request.headers["user-agent"],
       responseTime: Math.ceil(reply.getResponseTime()),
       httpStatusCode: reply.statusCode,
-    });
+    })();
 
     done();
   });
@@ -244,7 +244,7 @@ export function makeFastifyFunctionalWrapper(
     }) {
       fastify.route({
         async handler(request, reply) {
-          const result = F.pipe(await handler(request)(), ensureEither);
+          const result = pipe(await handler(request)(), ensureEither);
 
           // TODO: improve error management. ApiError?
           if (E.isLeft(result)) {

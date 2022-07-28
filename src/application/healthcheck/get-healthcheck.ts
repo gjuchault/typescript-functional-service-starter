@@ -1,7 +1,7 @@
 import os from "node:os";
 import v8 from "node:v8";
 import * as Apply from "fp-ts/lib/Apply";
-import * as F from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
 import type { Cache } from "../../infrastructure/cache";
@@ -23,12 +23,12 @@ export function getHealthcheck({
   healthcheckRepository,
   cache,
 }: GetHealthcheckContext): T.Task<GetHealthcheckResult> {
-  const getDatabaseHealthcheck = F.pipe(
+  const getDatabaseHealthcheck = pipe(
     healthcheckRepository.getHealthcheck(),
     T.map((result) => result.outcome)
   );
 
-  const getCacheHealthcheck = F.pipe(
+  const getCacheHealthcheck = pipe(
     "1",
     cache.echo,
     TE.fold<Error, string, "healthy" | "unhealthy">(
@@ -38,11 +38,11 @@ export function getHealthcheck({
   );
 
   const getSystemMemoryHealthcheck = T.of(
-    F.pipe(os.freemem() / os.totalmem(), getSystemMetricHealthiness)
+    pipe(os.freemem() / os.totalmem(), getSystemMetricHealthiness)
   );
 
   const getProcessMemoryUsage = T.of(
-    F.pipe(v8.getHeapStatistics(), getMemoryUsage, getSystemMetricHealthiness)
+    pipe(v8.getHeapStatistics(), getMemoryUsage, getSystemMetricHealthiness)
   );
 
   return Apply.sequenceS(T.ApplyPar)({

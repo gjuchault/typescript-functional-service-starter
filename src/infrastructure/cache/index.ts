@@ -1,4 +1,4 @@
-import * as T from "fp-ts/lib/Task";
+import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import { default as Redis } from "ioredis";
 import ms from "ms";
@@ -15,7 +15,7 @@ interface Dependencies {
 
 export interface Cache {
   readonly echo: (input: string) => TE.TaskEither<Error, string>;
-  readonly quit: () => T.Task<void>;
+  readonly quit: () => TE.TaskEither<Error, string>;
 }
 
 export async function createCacheStorage({
@@ -36,23 +36,23 @@ export async function createCacheStorage({
       return;
     }
 
-    logger.error("redis error", { error });
+    logger.error("redis error", { error })();
   });
 
   return telemetry.startSpan(
     "redis.connect",
     getSpanOptions(config.redisUrl),
     async () => {
-      logger.debug("connecting to redis...");
+      logger.debug("connecting to redis...")();
 
       try {
         await promiseWithTimeout(ms("2s"), () => redis.echo("1"));
       } catch (error) {
-        logger.error("redis connection error", { error });
+        logger.error("redis connection error", { error })();
         throw error;
       }
 
-      logger.info("connected to redis");
+      logger.info("connected to redis")();
 
       return { redis, cache: makeRedisFunctionalWrapper(redis) };
     }
@@ -64,13 +64,14 @@ function makeRedisFunctionalWrapper(redis: Redis): Cache {
     echo(input: string) {
       return TE.tryCatch(
         () => redis.echo(input),
-        (redisError) => redisError as Error
+        (redisError) => E.toError(redisError)
       );
     },
     quit() {
-      return async function () {
-        await redis.quit();
-      };
+      return TE.tryCatch(
+        () => redis.quit(),
+        (redisError) => E.toError(redisError)
+      );
     },
   };
 }

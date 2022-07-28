@@ -1,5 +1,5 @@
 import * as A from "fp-ts/lib/Apply";
-import * as F from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import * as R from "fp-ts/lib/Record";
 import * as S from "fp-ts/lib/string";
 import * as T from "fp-ts/lib/Task";
@@ -43,7 +43,7 @@ export function bindHealthcheckRoutes({
 
         return A.sequenceS(T.ApplyPar)({
           status: computeStatus,
-          body: F.pipe(
+          body: pipe(
             getHealthcheck,
             T.map((healthcheck) => ({ ...healthcheck, http: "healthy" }))
           ),
@@ -58,10 +58,10 @@ export function getComputeStatus({
 }: {
   readonly getHealthcheck: T.Task<GetHealthcheckResult>;
 }): T.Task<number> {
-  return F.pipe(
+  return pipe(
     getHealthcheck,
     T.map((healthcheck) => {
-      return F.pipe(
+      return pipe(
         { ...healthcheck },
         // eslint-disable-next-line unicorn/no-array-reduce, unicorn/no-array-callback-reference
         R.reduce(S.Ord)(200, (accumulator, statusEntry) =>

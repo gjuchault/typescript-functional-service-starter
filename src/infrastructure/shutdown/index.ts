@@ -42,21 +42,21 @@ export function createShutdownManager({
 
     isShuttingDown = true;
 
-    logger.info("received termination event, shutting down...");
+    logger.info("received termination event, shutting down...")();
 
     const gracefulShutdownTimeout = "20s";
 
     async function gracefulShutdown() {
       await httpTerminator.terminate();
-      logger.debug("http server shut down");
+      logger.debug("http server shut down")();
       await database.end()();
-      logger.debug("database shut down");
+      logger.debug("database shut down")();
       await cache.quit()();
-      logger.debug("cache shut down");
+      logger.debug("cache shut down")();
       await telemetry.shutdown();
       context.disable();
       trace.disable();
-      logger.debug("telemetry shut down");
+      logger.debug("telemetry shut down")();
 
       return true;
     }
@@ -77,7 +77,7 @@ export function createShutdownManager({
           arch: process.arch,
           platform: process.platform,
         }
-      );
+      )();
 
       if (shouldExit) {
         return exit(1);
@@ -88,10 +88,10 @@ export function createShutdownManager({
         nodeVersion: process.version,
         arch: process.arch,
         platform: process.platform,
-      });
+      })();
     }
 
-    logger.flush();
+    logger.flush()();
 
     if (shouldExit) {
       return exit(0);

@@ -21,7 +21,7 @@ export function createPinoSpanExporter({
           attributes: span.attributes,
           status: span.status,
           events: span.events,
-        });
+        })();
       }
 
       callback({
@@ -29,7 +29,7 @@ export function createPinoSpanExporter({
       });
     },
     async shutdown() {
-      logger.flush();
+      logger.flush()();
 
       // SpanExported requires shutdown to be asynchronous
       await Promise.resolve();
