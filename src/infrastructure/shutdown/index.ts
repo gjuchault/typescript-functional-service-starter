@@ -1,4 +1,7 @@
 import { context, trace } from "@opentelemetry/api";
+import * as E from "fp-ts/lib/Either";
+import { flow } from "fp-ts/lib/function";
+import * as TE from "fp-ts/lib/TaskEither";
 import { createHttpTerminator } from "http-terminator";
 import ms from "ms";
 import type { Config } from "../../config";
@@ -42,28 +45,28 @@ export function createShutdownManager({
 
     isShuttingDown = true;
 
-    logger.info("received termination event, shutting down...")();
-
     const gracefulShutdownTimeout = "20s";
 
-    async function gracefulShutdown() {
-      await httpTerminator.terminate();
-      logger.debug("http server shut down")();
-      await database.end()();
-      logger.debug("database shut down")();
-      await cache.quit()();
-      logger.debug("cache shut down")();
-      await telemetry.shutdown();
-      context.disable();
-      trace.disable();
-      logger.debug("telemetry shut down")();
-
-      return true;
-    }
+    const gracefulShutdown = flow(
+      logger.info("received termination event, shutting down..."),
+      () => TE.tryCatch(httpTerminator.terminate, E.toError),
+      TE.chainFirstIOK(() => logger.debug("http server shut down")),
+      database.end,
+      TE.chainFirstIOK(() => logger.debug("database shut down")),
+      cache.quit,
+      TE.chainFirstIOK(() => logger.debug("cache shut down")),
+      () =>
+        TE.tryCatch(async () => {
+          await telemetry.shutdown();
+          context.disable();
+          trace.disable();
+        }, E.toError),
+      TE.chainFirstIOK(() => logger.debug("cache shut down"))
+    );
 
     let success = true;
     try {
-      await promiseWithTimeout(ms(gracefulShutdownTimeout), gracefulShutdown);
+      await promiseWithTimeout(ms(gracefulShutdownTimeout), gracefulShutdown());
     } catch {
       success = false;
     }
