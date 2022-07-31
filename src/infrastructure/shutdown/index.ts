@@ -1,6 +1,6 @@
 import { context, trace } from "@opentelemetry/api";
 import * as E from "fp-ts/lib/Either";
-import { flow } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
 import { createHttpTerminator } from "http-terminator";
 import ms from "ms";
@@ -8,7 +8,8 @@ import type { Config } from "../../config";
 import type { FastifyServer } from "../../infrastructure/http";
 import type { Cache } from "../cache";
 import type { Database } from "../database";
-import { promiseWithTimeout } from "../helpers/promise-timeout";
+import { noConcurrency } from "../helpers/no-concurrency";
+import { taskEitherWithTimeout } from "../helpers/promise-timeout";
 import type { Logger } from "../logger";
 import type { Telemetry } from "../telemetry";
 
@@ -31,84 +32,71 @@ export function createShutdownManager({
   config,
   exit,
 }: Dependencies) {
+  const gracefulShutdownTimeout = "20s";
   const httpTerminator = createHttpTerminator({
     server: fastify.server,
     gracefulTerminationTimeout: ms("10s"),
   });
 
-  let isShuttingDown = false;
-
-  async function shutdown(shouldExit = true) {
-    if (isShuttingDown) {
-      return;
-    }
-
-    isShuttingDown = true;
-
-    const gracefulShutdownTimeout = "20s";
-
-    const gracefulShutdown = flow(
-      logger.info("received termination event, shutting down..."),
-      () => TE.tryCatch(httpTerminator.terminate, E.toError),
-      TE.chainFirstIOK(() => logger.debug("http server shut down")),
-      database.end,
-      TE.chainFirstIOK(() => logger.debug("database shut down")),
-      cache.quit,
-      TE.chainFirstIOK(() => logger.debug("cache shut down")),
-      () =>
-        TE.tryCatch(async () => {
-          await telemetry.shutdown();
-          context.disable();
-          trace.disable();
-        }, E.toError),
-      TE.chainFirstIOK(() => logger.debug("cache shut down"))
+  const gracefulShutdown = () =>
+    pipe(
+      pipe(
+        logger.info("received termination event, shutting down..."),
+        () => TE.tryCatch(httpTerminator.terminate, E.toError),
+        TE.chainFirstIOK(() => logger.debug("http server shut down")),
+        TE.chain(() => database.end()),
+        TE.chainFirstIOK(() => logger.debug("database shut down")),
+        TE.chain(() => cache.quit()),
+        TE.chainFirstIOK(() => logger.debug("cache shut down")),
+        TE.chain(() =>
+          TE.tryCatch(async () => {
+            await telemetry.shutdown();
+            context.disable();
+            trace.disable();
+          }, E.toError)
+        ),
+        TE.chainFirstIOK(() => logger.debug("telemetry shut down"))
+      ),
+      noConcurrency(),
+      taskEitherWithTimeout(ms(gracefulShutdownTimeout))
     );
 
-    let success = true;
-    try {
-      await promiseWithTimeout(ms(gracefulShutdownTimeout), gracefulShutdown());
-    } catch {
-      success = false;
-    }
-
-    if (!success) {
-      logger.fatal(
-        `could not gracefully shut down service ${config.name} after ${gracefulShutdownTimeout}`,
-        {
-          version: config.version,
-          nodeVersion: process.version,
-          arch: process.arch,
-          platform: process.platform,
-        }
-      )();
-
-      if (shouldExit) {
-        return exit(1);
-      }
-    } else {
-      logger.info(`gracefully shut down service ${config.name}`, {
-        version: config.version,
-        nodeVersion: process.version,
-        arch: process.arch,
-        platform: process.platform,
-      })();
-    }
-
-    logger.flush()();
-
-    if (shouldExit) {
-      return exit(0);
-    }
-  }
+  const shutdown = (shouldExit = true) =>
+    pipe(
+      gracefulShutdown(),
+      TE.bimap(
+        flow(
+          logger.fatal(
+            `could not gracefully shut down service ${config.name} after ${gracefulShutdownTimeout}`,
+            {
+              version: config.version,
+              nodeVersion: process.version,
+              arch: process.arch,
+              platform: process.platform,
+            }
+          ),
+          () => (shouldExit ? exit(1) : undefined)
+        ),
+        flow(
+          logger.info(`gracefully shut down service ${config.name}`, {
+            version: config.version,
+            nodeVersion: process.version,
+            arch: process.arch,
+            platform: process.platform,
+          }),
+          () => (shouldExit ? exit(0) : undefined)
+        )
+      )
+    );
 
   function listenToProcessEvents() {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     process.addListener("SIGTERM", async () => {
-      await shutdown();
+      await shutdown()();
     });
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     process.addListener("SIGINT", async () => {
-      await shutdown();
+      await shutdown()();
     });
   }
 
