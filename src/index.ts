@@ -76,7 +76,10 @@ export async function startApp(configOverride: Partial<Config> = {}) {
     fastify,
     telemetry,
     config,
-    exit: (statusCode?: number) => process.exit(statusCode),
+    exit: (statusCode?: number) => {
+      logger.flush()();
+      process.exit(statusCode);
+    },
   });
 
   shutdown.listenToProcessEvents();

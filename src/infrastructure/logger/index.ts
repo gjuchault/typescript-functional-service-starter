@@ -43,27 +43,27 @@ function makePinoFunctionalWrapper(logger: PinoLogger) {
     },
 
     error(message: string, payload?: unknown) {
-      return () => logger.error(payload, message);
+      return () => logger.error(payload ?? {}, message);
     },
 
     warn(message: string, payload?: unknown) {
-      return () => logger.warn(payload, message);
+      return () => logger.warn(payload ?? {}, message);
     },
 
     info(message: string, payload?: unknown) {
-      return () => logger.info(payload, message);
+      return () => logger.info(payload ?? {}, message);
     },
 
     debug(message: string, payload?: unknown) {
-      return () => logger.debug(payload, message);
+      return () => logger.debug(payload ?? {}, message);
     },
 
     trace(message: string, payload?: unknown) {
-      return () => logger.trace(payload, message);
+      return () => logger.trace(payload ?? {}, message);
     },
 
     silent(message: string, payload?: unknown) {
-      return () => logger.silent(payload, message);
+      return () => logger.silent(payload ?? {}, message);
     },
 
     flush() {
