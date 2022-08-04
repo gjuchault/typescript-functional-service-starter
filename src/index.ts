@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import * as E from "fp-ts/lib/Either";
 import type { Redis } from "ioredis";
 import { createHealthcheckApplication } from "./application/healthcheck";
 import { Config, getConfig } from "./config";
@@ -36,15 +37,35 @@ export async function startApp(configOverride: Partial<Config> = {}) {
   let fastify: FastifyServer;
 
   try {
-    ({ redis, cache } = await createCacheStorage({
+    const cacheResult = await createCacheStorage({
       config,
       telemetry,
-    }));
+    })();
 
-    database = await createDatabase({
+    if (E.isLeft(cacheResult)) {
+      logger.error(`${config.name} startup error: cache connection failed`, {
+        error: cacheResult.left,
+      })();
+
+      process.exit(1);
+    }
+
+    ({ cache, redis } = cacheResult.right);
+
+    const databaseResult = await createDatabase({
       config,
       telemetry,
-    });
+    })();
+
+    if (E.isLeft(databaseResult)) {
+      logger.error(`${config.name} startup error: database connection failed`, {
+        error: databaseResult.left,
+      })();
+
+      process.exit(1);
+    }
+
+    database = databaseResult.right;
 
     ({ fastify, httpServer } = await createHttpServer({
       config,

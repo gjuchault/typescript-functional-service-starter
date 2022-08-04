@@ -18,10 +18,10 @@ export interface Cache {
   readonly quit: () => TE.TaskEither<Error, string>;
 }
 
-export async function createCacheStorage({
+export function createCacheStorage({
   telemetry,
   config,
-}: Dependencies): Promise<{ cache: Cache; redis: Redis }> {
+}: Dependencies): TE.TaskEither<Error, { cache: Cache; redis: Redis }> {
   const logger = createLogger("redis", { config });
 
   const redis = new Redis(config.redisUrl, {});
@@ -39,24 +39,23 @@ export async function createCacheStorage({
     logger.error("redis error", { error })();
   });
 
-  return telemetry.startSpan(
+  return telemetry.withSpan<Error, { redis: Redis; cache: Cache }>(
     "redis.connect",
-    getSpanOptions(config.redisUrl),
-    async () => {
-      logger.debug("connecting to redis...")();
+    getSpanOptions(config.redisUrl)
+  )(async () => {
+    logger.debug("connecting to redis...")();
 
-      try {
-        await promiseWithTimeout(ms("2s"), () => redis.echo("1"));
-      } catch (error) {
-        logger.error("redis connection error", { error })();
-        throw error;
-      }
-
-      logger.info("connected to redis")();
-
-      return { redis, cache: makeRedisFunctionalWrapper(redis) };
+    try {
+      await promiseWithTimeout(ms("2s"), () => redis.echo("1"));
+    } catch (error) {
+      logger.error("redis connection error", { error })();
+      return E.left(E.toError(error));
     }
-  );
+
+    logger.info("connected to redis")();
+
+    return E.right({ redis, cache: makeRedisFunctionalWrapper(redis) });
+  });
 }
 
 function makeRedisFunctionalWrapper(redis: Redis): Cache {
@@ -69,7 +68,11 @@ function makeRedisFunctionalWrapper(redis: Redis): Cache {
     },
     quit() {
       return TE.tryCatch(
-        () => redis.quit(),
+        async () => {
+          await redis.quit();
+          redis.disconnect();
+          return "ok";
+        },
         (redisError) => E.toError(redisError)
       );
     },

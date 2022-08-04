@@ -1,13 +1,21 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   context,
   propagation,
-  Span,
   SpanOptions,
   SpanStatusCode,
+  Span,
   Tracer,
   trace,
 } from "@opentelemetry/api";
-import { Meter, metrics as apiMetrics } from "@opentelemetry/api-metrics";
+import {
+  Counter,
+  Histogram,
+  Meter,
+  MetricOptions,
+  metrics as apiMetrics,
+  UpDownCounter,
+} from "@opentelemetry/api-metrics";
 import {
   TraceIdRatioBasedSampler,
   W3CTraceContextPropagator,
@@ -20,26 +28,38 @@ import {
   SpanExporter,
 } from "@opentelemetry/sdk-trace-base";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import * as E from "fp-ts/lib/Either";
+import * as IO from "fp-ts/lib/IO";
+import * as TE from "fp-ts/lib/TaskEither";
 import type { Config } from "../../config";
 import { createLogger } from "../logger";
 import { bindSystemMetrics } from "./metrics/system";
 import { createPinoSpanExporter } from "./pino-exporter";
 
 export interface Telemetry {
-  metrics: Meter;
-  metricReader: PrometheusExporter;
-  tracer: Tracer;
-  startSpan<TResolved>(
+  readonly getMetricsRequestHandler: (
+    _request: IncomingMessage,
+    response: ServerResponse
+  ) => IO.IO<void>;
+  readonly withSpan: <E, A>(
     name: string,
-    options: SpanOptions | undefined,
-    callback: StartSpanCallback<TResolved>
-  ): Promise<TResolved>;
-  shutdown(): Promise<void>;
+    options: SpanOptions | undefined
+  ) => (callback: TE.TaskEither<E, A>) => TE.TaskEither<E, A>;
+  readonly startSpan: (name: string, options: SpanOptions) => IO.IO<Span>;
+  readonly shutdown: () => TE.TaskEither<Error, void>;
+  readonly createHistogram: (
+    name: string,
+    options: MetricOptions
+  ) => IO.IO<Histogram>;
+  readonly createCounter: (
+    name: string,
+    options: MetricOptions
+  ) => IO.IO<Counter>;
+  readonly createUpDownCounter: (
+    name: string,
+    options: MetricOptions
+  ) => IO.IO<UpDownCounter>;
 }
-
-type StartSpanCallback<TResolved> = (
-  span: Span
-) => Promise<TResolved> | TResolved;
 
 export async function createTelemetry({
   config,
@@ -75,52 +95,84 @@ export async function createTelemetry({
 
   const tracer = trace.getTracer(config.name, config.version);
 
-  const metrics = apiMetrics.getMeter(config.name, config.version);
+  const meter = apiMetrics.getMeter(config.name, config.version);
 
-  bindSystemMetrics({ metrics });
+  bindSystemMetrics({ meter });
 
-  async function startSpan<TResolved>(
-    name: string,
-    options: SpanOptions | undefined,
-    callback: StartSpanCallback<TResolved>
-  ): Promise<TResolved> {
-    const span = tracer.startSpan(name, options);
-    const traceContext = trace.setSpan(context.active(), span);
-
-    return context.with(traceContext, async () => {
-      try {
-        const result: TResolved = await callback(span);
-
-        span.setStatus({ code: SpanStatusCode.OK });
-
-        return result;
-      } catch (error) {
-        if (error instanceof Error) {
-          span.recordException(error);
-        }
-
-        span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: getErrorMessage(error),
-        });
-
-        throw error;
-      } finally {
-        span.end();
-      }
-    });
-  }
-
-  async function shutdown() {
-    await sdk.shutdown();
-  }
-
-  return {
-    metrics,
-    metricReader,
+  return makeOpentelemetryFunctionalWrapper({
+    sdk,
     tracer,
-    startSpan,
-    shutdown,
+    metricReader,
+    meter,
+  });
+}
+
+function makeOpentelemetryFunctionalWrapper({
+  sdk,
+  tracer,
+  metricReader,
+  meter,
+}: {
+  sdk: NodeSDK;
+  tracer: Tracer;
+  metricReader: PrometheusExporter;
+  meter: Meter;
+}): Telemetry {
+  return {
+    withSpan<E, A>(
+      name: string,
+      options: SpanOptions | undefined
+    ): (callback: TE.TaskEither<E, A>) => TE.TaskEither<E, A> {
+      return (callback) => {
+        return async function () {
+          const span = tracer.startSpan(name, options);
+          const traceContext = trace.setSpan(context.active(), span);
+
+          const result = await context.with(traceContext, async () => {
+            const innerResult = await callback();
+
+            if (E.isLeft(innerResult)) {
+              span.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: getErrorMessage(innerResult.left),
+              });
+              span.recordException(E.toError(innerResult.left));
+            } else {
+              span.setStatus({ code: SpanStatusCode.OK });
+            }
+
+            span.end();
+
+            return innerResult;
+          });
+
+          return result;
+        };
+      };
+    },
+    getMetricsRequestHandler(request: IncomingMessage, result: ServerResponse) {
+      return () => {
+        return metricReader.getMetricsRequestHandler(request, result);
+      };
+    },
+    startSpan(name: string, options: SpanOptions) {
+      return () => {
+        const span = tracer.startSpan(name, options);
+        return span;
+      };
+    },
+    createHistogram(name: string, options: MetricOptions) {
+      return () => meter.createHistogram(name, options);
+    },
+    createCounter(name: string, options: MetricOptions) {
+      return () => meter.createCounter(name, options);
+    },
+    createUpDownCounter(name: string, options: MetricOptions) {
+      return () => meter.createUpDownCounter(name, options);
+    },
+    shutdown() {
+      return TE.tryCatch(() => sdk.shutdown(), E.toError);
+    },
   };
 }
 

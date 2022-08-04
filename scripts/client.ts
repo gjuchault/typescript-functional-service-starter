@@ -50,7 +50,7 @@ async function startAppAndFetchSchema() {
   const response = await app.fastify.inject("/docs");
   const schema = response.json();
 
-  await app.shutdown.shutdown(false);
+  await app.shutdown.shutdown(false)();
 
   const parsedSchema = await parse(schema);
   console.log(`(${Date.now() - startTime}ms)`);
