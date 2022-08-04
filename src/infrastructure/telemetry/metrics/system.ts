@@ -5,7 +5,7 @@ import { Meter, ValueType } from "@opentelemetry/api-metrics";
 
 const startInSeconds = Math.round(Date.now() / 1000 - process.uptime());
 
-export function bindSystemMetrics({ metrics }: { metrics: Meter }) {
+export function bindSystemMetrics({ meter }: { meter: Meter }) {
   // eventLoopLag
   const eventLoopDelay = perfHooks.monitorEventLoopDelay();
   eventLoopDelay.enable();
@@ -13,7 +13,7 @@ export function bindSystemMetrics({ metrics }: { metrics: Meter }) {
   const eventLoopKeys: (keyof Histogram)[] = ["min", "max", "mean", "stddev"];
 
   for (const key of eventLoopKeys) {
-    const gauge = metrics.createObservableGauge(
+    const gauge = meter.createObservableGauge(
       `nodejs_eventloop_lag_${key}_seconds`,
       {
         description: `${key} event loop lag in seconds`,
@@ -47,7 +47,7 @@ export function bindSystemMetrics({ metrics }: { metrics: Meter }) {
 
   const percentileKeys = [50, 90, 99];
   for (const percentile of percentileKeys) {
-    const gauge = metrics.createObservableGauge(
+    const gauge = meter.createObservableGauge(
       `nodejs_eventloop_lag_p${percentile.toString()}_seconds`,
       {
         description: `The ${percentile.toString()}th percentile of the recorded event loop delays`,
@@ -62,7 +62,7 @@ export function bindSystemMetrics({ metrics }: { metrics: Meter }) {
   }
 
   // gc
-  const gcHistogram = metrics.createHistogram("nodejs_gc_duration_seconds", {
+  const gcHistogram = meter.createHistogram("nodejs_gc_duration_seconds", {
     description:
       "Garbage collection duration by kind, one of major, minor, incremental or weakcb in seconds",
     unit: "seconds",
@@ -96,14 +96,11 @@ export function bindSystemMetrics({ metrics }: { metrics: Meter }) {
     "external",
   ];
   for (const key of memoryKeys) {
-    const gauge = metrics.createObservableGauge(
-      "nodejs_heap_size_total_bytes",
-      {
-        description: `${key} size in bytes`,
-        unit: "bytes",
-        valueType: ValueType.INT,
-      }
-    );
+    const gauge = meter.createObservableGauge("nodejs_heap_size_total_bytes", {
+      description: `${key} size in bytes`,
+      unit: "bytes",
+      valueType: ValueType.INT,
+    });
 
     gauge.addCallback((observableResult) => {
       switch (key) {
@@ -132,7 +129,7 @@ export function bindSystemMetrics({ metrics }: { metrics: Meter }) {
   let lastCpuUsage = process.cpuUsage();
   let sharedCpuUsage: NodeJS.CpuUsage;
   for (const key of ["user", "system", "shared"]) {
-    const gauge = metrics.createObservableCounter(
+    const gauge = meter.createObservableCounter(
       `process_cpu_${key}_seconds_total`,
       {
         description: `Total ${key} CPU time spent in seconds`,
@@ -165,7 +162,7 @@ export function bindSystemMetrics({ metrics }: { metrics: Meter }) {
   }
 
   // processHandles
-  const processHandlesGauge = metrics.createObservableGauge(
+  const processHandlesGauge = meter.createObservableGauge(
     "nodejs_active_handles",
     {
       description: "Number of active handles",
@@ -183,7 +180,7 @@ export function bindSystemMetrics({ metrics }: { metrics: Meter }) {
   });
 
   // processStartTime
-  const processStartTimeGauge = metrics.createObservableGauge(
+  const processStartTimeGauge = meter.createObservableGauge(
     "nodejs_process_start_time_seconds",
     {
       description: "Start time of the process in seconds unix timestamp",
@@ -196,7 +193,7 @@ export function bindSystemMetrics({ metrics }: { metrics: Meter }) {
     observableResult.observe(startInSeconds);
   });
 
-  const processUpTimeGauge = metrics.createObservableGauge(
+  const processUpTimeGauge = meter.createObservableGauge(
     "nodejs_process_up_time_seconds",
     {
       description: "Up time of the process in seconds",

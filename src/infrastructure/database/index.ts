@@ -32,10 +32,10 @@ export interface Database {
 
 export { DatabasePoolConnection } from "slonik";
 
-export async function createDatabase({
+export function createDatabase({
   config,
   telemetry,
-}: Dependencies): Promise<Database> {
+}: Dependencies): TE.TaskEither<Error, Database> {
   const logger = createLogger("database", { config });
 
   const pool = createPool(config.databaseUrl, {
@@ -44,19 +44,22 @@ export async function createDatabase({
     interceptors: [createSlonikTelemetryInterceptor({ telemetry })],
   });
 
-  return telemetry.startSpan(
+  return telemetry.withSpan<Error, Database>(
     "database.connect",
-    getSpanOptions({ pool }),
-    async () => {
-      logger.debug(`connecting to database...`)();
+    getSpanOptions({ pool })
+  )(async () => {
+    logger.debug(`connecting to database...`)();
 
+    try {
       await pool.query(sql`select 1`);
-
-      logger.info(`connected to database`)();
-
-      return makeSlonikFunctionalWrapper(pool);
+    } catch (error) {
+      return E.left(E.toError(error));
     }
-  );
+
+    logger.info(`connected to database`)();
+
+    return E.right(makeSlonikFunctionalWrapper(pool));
+  });
 }
 
 export function makeSlonikFunctionalWrapper(pool: DatabasePool): Database {
@@ -70,6 +73,7 @@ export function makeSlonikFunctionalWrapper(pool: DatabasePool): Database {
     end() {
       return TE.tryCatch(async () => {
         await pool.end();
+        console.log("POOL END");
         return true;
       }, E.toError);
     },

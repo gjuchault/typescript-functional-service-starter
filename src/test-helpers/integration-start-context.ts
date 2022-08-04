@@ -62,6 +62,6 @@ beforeAll(async () => {
   await migration.up();
 
   return async () => {
-    await shutdown(false);
+    await shutdown(false)();
   };
 });

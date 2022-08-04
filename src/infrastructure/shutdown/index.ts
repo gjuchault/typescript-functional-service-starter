@@ -1,4 +1,3 @@
-import { context, trace } from "@opentelemetry/api";
 import * as E from "fp-ts/lib/Either";
 import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
@@ -48,13 +47,7 @@ export function createShutdownManager({
         TE.chainFirstIOK(() => logger.debug("database shut down")),
         TE.chain(() => cache.quit()),
         TE.chainFirstIOK(() => logger.debug("cache shut down")),
-        TE.chain(() =>
-          TE.tryCatch(async () => {
-            await telemetry.shutdown();
-            context.disable();
-            trace.disable();
-          }, E.toError)
-        ),
+        TE.chain(() => telemetry.shutdown()),
         TE.chainFirstIOK(() => logger.debug("telemetry shut down"))
       ),
       noConcurrency(),
@@ -66,15 +59,17 @@ export function createShutdownManager({
       gracefulShutdown(),
       TE.bimap(
         flow(
-          logger.fatal(
-            `could not gracefully shut down service ${config.name} after ${gracefulShutdownTimeout}`,
-            {
-              version: config.version,
-              nodeVersion: process.version,
-              arch: process.arch,
-              platform: process.platform,
-            }
-          ),
+          (error) =>
+            logger.fatal(
+              `could not gracefully shut down service ${config.name} after ${gracefulShutdownTimeout}`,
+              {
+                version: config.version,
+                nodeVersion: process.version,
+                arch: process.arch,
+                platform: process.platform,
+                error: error.message,
+              }
+            )(),
           () => (shouldExit ? exit(1) : undefined)
         ),
         flow(

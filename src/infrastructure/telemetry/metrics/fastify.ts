@@ -9,23 +9,21 @@ export const metricsPlugin = fp(innerMetricsPlugin);
 
 function innerMetricsPlugin(
   httpServer: FastifyInstance,
-  options: Telemetry,
+  telemetry: Telemetry,
   done: () => void
 ) {
-  const { metrics, metricReader } = options;
-
   httpServer.get("/metrics", (request, reply) => {
-    metricReader.getMetricsRequestHandler(request.raw, reply.raw);
+    telemetry.getMetricsRequestHandler(request.raw, reply.raw)();
   });
 
-  const httpRequestDurationMicroseconds = metrics.createHistogram(
+  const httpRequestDurationMicroseconds = telemetry.createHistogram(
     "http_request_duration_seconds",
     {
       description: "Duration of HTTP requests in microseconds",
       unit: "milliseconds",
       valueType: ValueType.DOUBLE,
     }
-  );
+  )();
 
   const durationMap = new WeakMap<FastifyRequest, number>();
 
