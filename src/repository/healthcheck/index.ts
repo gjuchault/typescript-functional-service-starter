@@ -1,6 +1,6 @@
-import { pipe } from "fp-ts/lib/function";
-import * as R from "fp-ts/lib/Reader";
-import * as T from "fp-ts/lib/Task";
+import { pipe } from "fp-ts/function";
+import * as R from "fp-ts/Reader";
+import * as T from "fp-ts/Task";
 import type { Database } from "../../infrastructure/database";
 import { getHealthcheck, GetHealthcheckResult } from "./get-healthcheck";
 

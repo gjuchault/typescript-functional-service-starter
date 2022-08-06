@@ -1,8 +1,8 @@
-import { pipe } from "fp-ts/lib/function";
-import * as RT from "fp-ts/lib/ReaderTask";
-import * as R from "fp-ts/lib/Record";
-import * as S from "fp-ts/lib/string";
-import * as T from "fp-ts/lib/Task";
+import { pipe } from "fp-ts/function";
+import * as RT from "fp-ts/ReaderTask";
+import * as R from "fp-ts/Record";
+import * as S from "fp-ts/string";
+import * as T from "fp-ts/Task";
 import { z } from "zod";
 import {
   getHealthcheck,

@@ -1,6 +1,6 @@
-import { pipe } from "fp-ts/lib/function";
-import * as RT from "fp-ts/lib/ReaderTask";
-import * as T from "fp-ts/lib/Task";
+import { pipe } from "fp-ts/function";
+import * as RT from "fp-ts/ReaderTask";
+import * as T from "fp-ts/Task";
 import { z } from "zod";
 import type { Cache } from "../../infrastructure/cache";
 import type { Database } from "../../infrastructure/database";
