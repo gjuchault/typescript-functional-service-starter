@@ -8,7 +8,7 @@
   "parserOptions": {
     "project": "./tsconfig.lint.json"
   },
-  "plugins": ["import", "@typescript-eslint", "functional"],
+  "plugins": ["import", "@typescript-eslint", "functional", "fp-ts"],
   "ignorePatterns": ["scripts/*", "types/*", "client/*", "esbuild-hook.js"],
   "extends": [
     "eslint:recommended",
@@ -57,7 +57,8 @@
       "extends": [
         "plugin:functional/external-recommended",
         "plugin:functional/recommended",
-        "plugin:functional/stylistic"
+        "plugin:functional/stylistic",
+        "plugin:fp-ts/all"
       ],
       "rules": {
         "functional/functional-parameters": "off"
