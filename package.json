@@ -105,7 +105,7 @@
     "@fastify/swagger": "^7.4.1",
     "@fastify/under-pressure": "^7.0.0",
     "@opentelemetry/api": "^1.1.0",
-    "@opentelemetry/api-metrics": "^0.30.0",
+    "@opentelemetry/api-metrics": "^0.31.0",
     "@opentelemetry/core": "^1.5.0",
     "@opentelemetry/exporter-prometheus": "^0.30.0",
     "@opentelemetry/resources": "^1.5.0",
