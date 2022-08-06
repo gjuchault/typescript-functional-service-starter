@@ -110,7 +110,7 @@
     "@opentelemetry/exporter-prometheus": "^0.30.0",
     "@opentelemetry/resources": "^1.4.0",
     "@opentelemetry/sdk-node": "^0.30.0",
-    "@opentelemetry/sdk-trace-base": "^1.4.0",
+    "@opentelemetry/sdk-trace-base": "^1.5.0",
     "@opentelemetry/semantic-conventions": "^1.5.0",
     "dotenv": "^16.0.1",
     "fastify": "^4.2.0",
