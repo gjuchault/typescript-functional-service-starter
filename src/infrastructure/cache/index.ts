@@ -21,7 +21,10 @@ export interface Cache {
 export function createCacheStorage({
   telemetry,
   config,
-}: Dependencies): TE.TaskEither<Error, { readonly cache: Cache; readonly redis: Redis }> {
+}: Dependencies): TE.TaskEither<
+  Error,
+  { readonly cache: Cache; readonly redis: Redis }
+> {
   const logger = createLogger("redis", { config });
 
   const redis = new Redis(config.redisUrl, {});
@@ -39,7 +42,10 @@ export function createCacheStorage({
     logger.error("redis error", { error })();
   });
 
-  return telemetry.withSpan<Error, { readonly redis: Redis; readonly cache: Cache }>(
+  return telemetry.withSpan<
+    Error,
+    { readonly redis: Redis; readonly cache: Cache }
+  >(
     "redis.connect",
     getSpanOptions(config.redisUrl)
   )(async () => {
@@ -83,7 +89,9 @@ function isRedisError(error: unknown): error is object {
   return typeof error === "object" && error !== null;
 }
 
-function isRedisConnRefusedError(error: object): error is { readonly code: string } {
+function isRedisConnRefusedError(
+  error: object
+): error is { readonly code: string } {
   if ("code" in error) {
     return (error as { readonly code: string }).code === "ECONNREFUSED";
   }
