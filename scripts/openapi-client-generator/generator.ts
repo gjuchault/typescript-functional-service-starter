@@ -15,7 +15,17 @@ export function generate({
 
     ${interfaces.join("\n")}
 
-    type HttpResult<T> = { success: true; data: T } | { success: false; data: unknown }
+    type HttpResult<T> =
+      | {
+          success: true;
+          headers: Record<string, string>;
+          data: T
+        }
+      | {
+          success: false;
+          headers: Record<string, string>;
+          data: unknown
+        }
 
     ${generateWrapper(
       [methods.join("\n\n"), generateReturnMethods(endpoints)].join("\n")
@@ -55,7 +65,11 @@ function generateMethod(endpoint: Endpoint) {
       });
 
       if (!response.ok) {
-        return { success: false, data: await response.json() };
+        return {
+          success: false,
+          headers: Object.fromEntries(response.headers.entries()),
+          data: await response.json()
+        };
       }
 
       ${generateSuccessfulReturn(endpoint)}
@@ -119,14 +133,14 @@ function generateQueryParameters(endpoint: Endpoint) {
 
 function generateSuccessfulReturn(endpoint: Endpoint) {
   if (!endpoint.responseType) {
-    return "return { success: true, data: undefined }";
+    return "return { success: true, headers: Object.fromEntries(response.headers.entries()), data: undefined }";
   }
 
   return `
     const data = await response.json();
     return {
       success: true,
-      headers: response.headers,
+      headers: Object.fromEntries(response.headers.entries()),
       data: ${endpoint.responseType}.parse(data)
     }
   `;
