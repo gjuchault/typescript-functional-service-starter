@@ -10,7 +10,12 @@ export function bindSystemMetrics({ meter }: { readonly meter: Meter }) {
   const eventLoopDelay = perfHooks.monitorEventLoopDelay();
   eventLoopDelay.enable();
 
-  const eventLoopKeys: readonly (keyof Histogram)[] = ["min", "max", "mean", "stddev"];
+  const eventLoopKeys: readonly (keyof Histogram)[] = [
+    "min",
+    "max",
+    "mean",
+    "stddev",
+  ];
 
   for (const key of eventLoopKeys) {
     const gauge = meter.createObservableGauge(
