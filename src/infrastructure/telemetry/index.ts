@@ -64,7 +64,7 @@ export interface Telemetry {
 export async function createTelemetry({
   config,
 }: {
-  config: Config;
+  readonly config: Config;
 }): Promise<Telemetry> {
   const logger = createLogger("telemetry", { config });
 
@@ -113,10 +113,10 @@ function makeOpentelemetryFunctionalWrapper({
   metricReader,
   meter,
 }: {
-  sdk: NodeSDK;
-  tracer: Tracer;
-  metricReader: PrometheusExporter;
-  meter: Meter;
+  readonly sdk: NodeSDK;
+  readonly tracer: Tracer;
+  readonly metricReader: PrometheusExporter;
+  readonly meter: Meter;
 }): Telemetry {
   return {
     withSpan<E, A>(

@@ -16,7 +16,7 @@ export interface Logger {
 
 export function createLogger(
   serviceName: string,
-  { config }: { config: Config }
+  { config }: { readonly config: Config }
 ): Logger {
   const logger = pino({
     name: "app",

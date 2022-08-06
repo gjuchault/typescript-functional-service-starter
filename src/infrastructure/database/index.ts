@@ -16,8 +16,8 @@ import {
 } from "../telemetry/instrumentations/slonik";
 
 interface Dependencies {
-  config: Config;
-  telemetry: Telemetry;
+  readonly config: Config;
+  readonly telemetry: Telemetry;
 }
 
 export interface Database {

@@ -8,7 +8,7 @@ import { z, ZodType } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 export interface ZodTypeProvider extends FastifyTypeProvider {
-  output: this["input"] extends z.ZodSchema ? z.infer<this["input"]> : never;
+  readonly output: this["input"] extends z.ZodSchema ? z.infer<this["input"]> : never;
 }
 
 export function validatorCompiler({
@@ -33,11 +33,11 @@ export function swaggerTransform({
   schema,
   url,
 }: {
-  schema: FastifySchema;
-  url: string;
+  readonly schema: FastifySchema;
+  readonly url: string;
 }): {
-  schema: JSONObject;
-  url: string;
+  readonly schema: JSONObject;
+  readonly url: string;
 } {
   let transformedResponse: Record<string, JSONObject> | undefined;
 
@@ -45,7 +45,7 @@ export function swaggerTransform({
     transformedResponse = {};
 
     for (const [statusCode, responseSchema] of Object.entries(
-      schema.response as Record<string, { properties?: ZodType } | undefined>
+      schema.response as Record<string, { readonly properties?: ZodType } | undefined>
     )) {
       if (responseSchema?.properties) {
         // skip unsafe keys injection

@@ -2,13 +2,14 @@ import os from "node:os";
 import v8 from "node:v8";
 import * as Apply from "fp-ts/lib/Apply";
 import { pipe } from "fp-ts/lib/function";
+import * as RT from "fp-ts/lib/ReaderTask";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
 import type { Cache } from "../../infrastructure/cache";
 import type { HealthcheckRepository } from "../../repository/healthcheck";
 
-export interface GetHealthcheckContext {
-  readonly healthcheckRepository: HealthcheckRepository;
+interface Dependencies {
+  readonly repository: Pick<HealthcheckRepository, "getHealthcheck">;
   readonly cache: Pick<Cache, "echo">;
 }
 
@@ -19,39 +20,45 @@ export interface GetHealthcheckResult {
   readonly processMemory: "healthy" | "unhealthy";
 }
 
-export function getHealthcheck({
-  healthcheckRepository,
-  cache,
-}: GetHealthcheckContext): T.Task<GetHealthcheckResult> {
-  const getDatabaseHealthcheck = pipe(
-    healthcheckRepository.getHealthcheck(),
-    T.map((result) => result.outcome)
-  );
+export const getHealthcheck = (): RT.ReaderTask<
+  Dependencies,
+  GetHealthcheckResult
+> =>
+  pipe(
+    RT.ask<Dependencies>(),
+    RT.chain(({ repository, cache }) => {
+      const getDatabaseHealthcheck = pipe(
+        repository.getHealthcheck(),
+        T.map(({ outcome }) => outcome)
+      );
 
-  const getCacheHealthcheck = pipe(
-    "1",
-    cache.echo,
-    TE.fold<Error, string, "healthy" | "unhealthy">(
-      () => T.of("unhealthy"),
-      () => T.of("healthy")
-    )
-  );
+      const getCacheHealthcheck = pipe(
+        "1",
+        cache.echo,
+        TE.fold<Error, string, "healthy" | "unhealthy">(
+          () => T.of("unhealthy"),
+          () => T.of("healthy")
+        )
+      );
 
-  const getSystemMemoryHealthcheck = T.of(
-    pipe(os.freemem() / os.totalmem(), getSystemMetricHealthiness)
-  );
+      const getSystemMemoryHealthcheck = T.of(
+        pipe(os.freemem() / os.totalmem(), getSystemMetricHealthiness)
+      );
 
-  const getProcessMemoryUsage = T.of(
-    pipe(v8.getHeapStatistics(), getMemoryUsage, getSystemMetricHealthiness)
-  );
+      const getProcessMemoryUsage = T.of(
+        pipe(v8.getHeapStatistics(), getMemoryUsage, getSystemMetricHealthiness)
+      );
 
-  return Apply.sequenceS(T.ApplyPar)({
-    database: getDatabaseHealthcheck,
-    cache: getCacheHealthcheck,
-    systemMemory: getSystemMemoryHealthcheck,
-    processMemory: getProcessMemoryUsage,
-  });
-}
+      return RT.fromTask(
+        Apply.sequenceS(T.ApplyPar)({
+          database: getDatabaseHealthcheck,
+          cache: getCacheHealthcheck,
+          systemMemory: getSystemMemoryHealthcheck,
+          processMemory: getProcessMemoryUsage,
+        })
+      );
+    })
+  );
 
 function getSystemMetricHealthiness(value: number): "healthy" | "unhealthy" {
   return value > 0.8 ? "unhealthy" : "healthy";

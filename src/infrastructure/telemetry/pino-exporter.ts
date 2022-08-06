@@ -5,7 +5,7 @@ import type { Logger } from "../logger";
 export function createPinoSpanExporter({
   logger,
 }: {
-  logger: Logger;
+  readonly logger: Logger;
 }): SpanExporter {
   return {
     export(spans, callback) {

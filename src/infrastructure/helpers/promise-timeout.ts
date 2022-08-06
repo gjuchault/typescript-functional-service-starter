@@ -22,7 +22,7 @@ export function promiseWithTimeout<T>(
 
 type ResultPromise<E, A> =
   | {
-      _tag: "Timeout";
+      readonly _tag: "Timeout";
     }
   | E.Either<E, A>;
 

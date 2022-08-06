@@ -9,8 +9,8 @@ export function buildMigration({
   migrationFiles,
   database,
 }: {
-  migrationFiles: InputMigrations<Record<never, never>>;
-  database: Database;
+  readonly migrationFiles: InputMigrations<Record<never, never>>;
+  readonly database: Database;
 }) {
   async function ensureTable() {
     await database.runInConnection((pool) =>
@@ -39,7 +39,7 @@ export function buildMigration({
     return [...migrationsResult.right];
   }
 
-  async function logMigration({ name }: { name: string }) {
+  async function logMigration({ name }: { readonly name: string }) {
     await database.runInConnection((pool) =>
       pool.query(sql`
         insert into "public"."migrations" ("name")
@@ -48,7 +48,7 @@ export function buildMigration({
     )();
   }
 
-  async function unlogMigration({ name }: { name: string }) {
+  async function unlogMigration({ name }: { readonly name: string }) {
     await ensureTable();
 
     await database.runInConnection((pool) =>

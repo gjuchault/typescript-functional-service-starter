@@ -13,13 +13,13 @@ import type { Logger } from "../logger";
 import type { Telemetry } from "../telemetry";
 
 interface Dependencies {
-  logger: Logger;
-  fastify: FastifyServer;
-  database: Database;
-  cache: Cache;
-  telemetry: Telemetry;
-  config: Config;
-  exit: (statusCode: number) => void;
+  readonly logger: Logger;
+  readonly fastify: FastifyServer;
+  readonly database: Database;
+  readonly cache: Cache;
+  readonly telemetry: Telemetry;
+  readonly config: Config;
+  readonly exit: (statusCode: number) => void;
 }
 
 export function createShutdownManager({

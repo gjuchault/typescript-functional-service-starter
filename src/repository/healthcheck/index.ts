@@ -1,35 +1,26 @@
 import { pipe } from "fp-ts/lib/function";
+import * as R from "fp-ts/lib/Reader";
 import * as T from "fp-ts/lib/Task";
-import * as TE from "fp-ts/lib/TaskEither";
-import { sql } from "slonik";
-import type {
-  Database,
-  DatabasePoolConnection,
-} from "../../infrastructure/database";
+import type { Database } from "../../infrastructure/database";
+import { getHealthcheck, GetHealthcheckResult } from "./get-healthcheck";
+
+interface Dependencies {
+  readonly database: Database;
+}
 
 export interface HealthcheckRepository {
   readonly getHealthcheck: () => T.Task<GetHealthcheckResult>;
 }
 
-export type GetHealthcheckResult =
-  | { readonly outcome: "healthy" }
-  | { readonly outcome: "unhealthy" };
-
-export function createHealthcheckRepository({
-  database,
-}: {
-  readonly database: Database;
-}): HealthcheckRepository {
-  function getHealthcheck(): T.Task<GetHealthcheckResult> {
-    return pipe(
-      (pool: DatabasePoolConnection) => pool.query(sql`select 1`),
-      database.runInConnection,
-      TE.fold<Error, unknown, GetHealthcheckResult>(
-        () => T.of({ outcome: "unhealthy" }),
-        () => T.of({ outcome: "healthy" })
-      )
-    );
-  }
-
-  return { getHealthcheck };
-}
+export const getHealthcheckRepository = (): R.Reader<
+  Dependencies,
+  HealthcheckRepository
+> =>
+  pipe(
+    R.ask<Dependencies>(),
+    R.chain(({ database }) =>
+      R.of({
+        getHealthcheck: () => getHealthcheck()({ database }),
+      })
+    )
+  );

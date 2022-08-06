@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as E from "fp-ts/lib/Either";
+import { pipe } from "fp-ts/lib/function";
 import type { Redis } from "ioredis";
-import { createHealthcheckApplication } from "./application/healthcheck";
 import { Config, getConfig } from "./config";
 import { createCacheStorage, Cache } from "./infrastructure/cache";
 import { createDatabase, Database } from "./infrastructure/database";
@@ -14,7 +14,6 @@ import { createLogger } from "./infrastructure/logger";
 import { createShutdownManager } from "./infrastructure/shutdown";
 import { createTelemetry } from "./infrastructure/telemetry";
 import { bindHttpRoutes } from "./presentation/http";
-import { createRepository } from "./repository";
 
 export async function startApp(configOverride: Partial<Config> = {}) {
   const config = getConfig(configOverride);
@@ -79,16 +78,7 @@ export async function startApp(configOverride: Partial<Config> = {}) {
     process.exit(1);
   }
 
-  const repository = createRepository({
-    database,
-  });
-
-  const healthcheckApplication = createHealthcheckApplication({
-    cache,
-    healthcheckRepository: repository.healthcheck,
-  });
-
-  bindHttpRoutes({ httpServer, healthcheckApplication });
+  await pipe({ cache, database, httpServer }, bindHttpRoutes())();
 
   const shutdown = createShutdownManager({
     logger,
