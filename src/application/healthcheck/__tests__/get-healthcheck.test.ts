@@ -31,9 +31,9 @@ describe("getHealthcheck()", () => {
       let result: GetHealthcheckResult;
 
       beforeAll(async () => {
-        result = await getHealthcheck({
+        result = await getHealthcheck()({
           cache: mockHealthyCache,
-          healthcheckRepository: mockHealthyRepository,
+          repository: mockHealthyRepository,
         })();
       });
 
@@ -55,9 +55,9 @@ describe("getHealthcheck()", () => {
       let result: GetHealthcheckResult;
 
       beforeAll(async () => {
-        result = await getHealthcheck({
+        result = await getHealthcheck()({
           cache: mockUnhealthyCache,
-          healthcheckRepository: mockHealthyRepository,
+          repository: mockHealthyRepository,
         })();
       });
 
@@ -79,9 +79,9 @@ describe("getHealthcheck()", () => {
       let result: GetHealthcheckResult;
 
       beforeAll(async () => {
-        result = await getHealthcheck({
+        result = await getHealthcheck()({
           cache: mockHealthyCache,
-          healthcheckRepository: mockUnhealthyRepository,
+          repository: mockUnhealthyRepository,
         })();
       });
 
@@ -103,9 +103,9 @@ describe("getHealthcheck()", () => {
       let result: GetHealthcheckResult;
 
       beforeAll(async () => {
-        result = await getHealthcheck({
+        result = await getHealthcheck()({
           cache: mockUnhealthyCache,
-          healthcheckRepository: mockUnhealthyRepository,
+          repository: mockUnhealthyRepository,
         })();
       });
 

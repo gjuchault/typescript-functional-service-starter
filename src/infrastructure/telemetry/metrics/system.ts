@@ -5,12 +5,12 @@ import { Meter, ValueType } from "@opentelemetry/api-metrics";
 
 const startInSeconds = Math.round(Date.now() / 1000 - process.uptime());
 
-export function bindSystemMetrics({ meter }: { meter: Meter }) {
+export function bindSystemMetrics({ meter }: { readonly meter: Meter }) {
   // eventLoopLag
   const eventLoopDelay = perfHooks.monitorEventLoopDelay();
   eventLoopDelay.enable();
 
-  const eventLoopKeys: (keyof Histogram)[] = ["min", "max", "mean", "stddev"];
+  const eventLoopKeys: readonly (keyof Histogram)[] = ["min", "max", "mean", "stddev"];
 
   for (const key of eventLoopKeys) {
     const gauge = meter.createObservableGauge(
@@ -90,7 +90,7 @@ export function bindSystemMetrics({ meter }: { meter: Meter }) {
   // heapSizeAndUsed
   // share a variable to avoid discrepancies between values
   let sharedMemoryUsage: NodeJS.MemoryUsage;
-  const memoryKeys: (keyof NodeJS.MemoryUsage)[] = [
+  const memoryKeys: readonly (keyof NodeJS.MemoryUsage)[] = [
     "heapTotal",
     "heapUsed",
     "external",
@@ -173,7 +173,7 @@ export function bindSystemMetrics({ meter }: { meter: Meter }) {
 
   processHandlesGauge.addCallback((observableResult) => {
     const handles = (
-      process as unknown as Record<string, () => []>
+      process as unknown as Record<string, () => readonly []>
     )._getActiveHandles();
 
     observableResult.observe(handles.length);

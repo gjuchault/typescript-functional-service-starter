@@ -11,7 +11,7 @@ export const PG_VALUES = "db.postgresql.values";
 export const IDLE_TIMEOUT_MILLIS = "db.postgresql.idle.timeout.millis";
 export const MAX_CLIENT = "db.postgresql.max.client";
 
-export function getSpanOptions({ pool }: { pool: DatabasePool }) {
+export function getSpanOptions({ pool }: { readonly pool: DatabasePool }) {
   return {
     kind: SpanKind.CLIENT,
     attributes: {
@@ -25,7 +25,7 @@ export function getSpanOptions({ pool }: { pool: DatabasePool }) {
 export function createSlonikTelemetryInterceptor({
   telemetry,
 }: {
-  telemetry: Telemetry;
+  readonly telemetry: Telemetry;
 }): Interceptor {
   const spanByQueryId = new Map<string, Span>();
 

@@ -1,33 +1,34 @@
-import { describe, it, vi, expect } from "vitest";
-import { getComputeStatus } from "../index";
+import { describe, it, expect } from "vitest";
+import type { GetHealthcheckResult } from "../../../../../application/healthcheck/get-healthcheck";
+import { computeStatus } from "../index";
 
-describe("computeStatus", () => {
+describe("computeStatus()", () => {
   describe("given a fully healthy result", () => {
-    const getHealthcheck = vi.fn().mockResolvedValue({
+    const healthcheckResult: GetHealthcheckResult = {
       database: "healthy",
       cache: "healthy",
       systemMemory: "healthy",
       processMemory: "healthy",
-    });
+    };
 
     describe("when called", () => {
-      it("returns 200", async () => {
-        expect(await getComputeStatus({ getHealthcheck })()).toBe(200);
+      it("returns 200", () => {
+        expect(computeStatus(healthcheckResult)).toBe(200);
       });
     });
   });
 
   describe("given a partially unhealthy result", () => {
-    const getHealthcheck = vi.fn().mockResolvedValue({
+    const healthcheckResult: GetHealthcheckResult = {
       database: "healthy",
       cache: "unhealthy",
       systemMemory: "healthy",
       processMemory: "healthy",
-    });
+    };
 
     describe("when called", () => {
-      it("returns 200", async () => {
-        expect(await getComputeStatus({ getHealthcheck })()).toBe(500);
+      it("returns 200", () => {
+        expect(computeStatus(healthcheckResult)).toBe(500);
       });
     });
   });

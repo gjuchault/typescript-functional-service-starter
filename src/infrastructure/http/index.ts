@@ -50,10 +50,10 @@ export interface HttpServer {
     schema,
     handler,
   }: {
-    method: HTTPMethods | HTTPMethods[];
-    url: string;
-    schema: Schema;
-    handler: (request: FastifyRequest) => HandlerResult;
+    readonly method: HTTPMethods | readonly HTTPMethods[];
+    readonly url: string;
+    readonly schema: Schema;
+    readonly handler: (request: FastifyRequest) => HandlerResult;
   }) => HttpServer;
 }
 
@@ -99,9 +99,9 @@ export async function createHttpServer({
   redis,
   telemetry,
 }: {
-  config: Config;
-  redis: Redis;
-  telemetry: Telemetry;
+  readonly config: Config;
+  readonly redis: Redis;
+  readonly telemetry: Telemetry;
 }) {
   const logger = createLogger("http", { config });
 
@@ -237,10 +237,10 @@ export function makeFastifyFunctionalWrapper(
       url,
       schema,
     }: {
-      handler: (request: FastifyRequest) => HandlerResult;
-      method: HTTPMethods | HTTPMethods[];
-      url: string;
-      schema: Schema;
+      readonly handler: (request: FastifyRequest) => HandlerResult;
+      readonly method: HTTPMethods | readonly HTTPMethods[];
+      readonly url: string;
+      readonly schema: Schema;
     }) {
       fastify.route({
         async handler(request, reply) {
@@ -258,7 +258,7 @@ export function makeFastifyFunctionalWrapper(
 
           await reply.status(200).send(result.right.body);
         },
-        method,
+        method: method as HTTPMethods | HTTPMethods[],
         url,
         schema,
       });

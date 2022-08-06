@@ -1,7 +1,7 @@
 import { createMockQueryResult } from "slonik";
 import { beforeAll, describe, it, vi, expect } from "vitest";
-import { createHealthcheckRepository, GetHealthcheckResult } from "..";
 import { createMockDatabase } from "../../../test-helpers/mock-database";
+import { getHealthcheck, GetHealthcheckResult } from "../get-healthcheck";
 
 describe("getHealthcheck()", () => {
   describe("given a healthy database", () => {
@@ -11,15 +11,11 @@ describe("getHealthcheck()", () => {
       query,
     });
 
-    const repository = createHealthcheckRepository({
-      database,
-    });
-
     describe("when called", () => {
       let result: GetHealthcheckResult;
 
       beforeAll(async () => {
-        result = await repository.getHealthcheck()();
+        result = await getHealthcheck()({ database })();
       });
 
       it("returns outcome healthy", () => {
@@ -41,16 +37,11 @@ describe("getHealthcheck()", () => {
     const database = createMockDatabase({
       query,
     });
-
-    const repository = createHealthcheckRepository({
-      database,
-    });
-
     describe("when called", () => {
       let result: GetHealthcheckResult;
 
       beforeAll(async () => {
-        result = await repository.getHealthcheck()();
+        result = await getHealthcheck()({ database })();
       });
 
       it("returns outcome unhealthy", () => {
