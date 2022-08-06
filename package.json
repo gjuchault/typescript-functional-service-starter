@@ -94,7 +94,7 @@
   "dependencies": {
     "@autotelic/fastify-opentelemetry": "^0.17.0",
     "@fastify/circuit-breaker": "^3.0.0",
-    "@fastify/cookie": "^7.0.0",
+    "@fastify/cookie": "^7.3.1",
     "@fastify/cors": "^8.1.0",
     "@fastify/etag": "^4.0.0",
     "@fastify/formbody": "^7.0.1",
