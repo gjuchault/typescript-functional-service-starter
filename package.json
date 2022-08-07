@@ -78,7 +78,7 @@
     "eslint-plugin-security": "^1.5.0",
     "eslint-plugin-unicorn": "^43.0.1",
     "get-port": "^6.1.2",
-    "json-schema-to-typescript": "^11.0.1",
+    "json-schema-to-typescript": "^11.0.2",
     "json-schema-to-zod": "^0.1.2",
     "launch-editor": "^2.5.0",
     "nyc": "^15.1.0",
