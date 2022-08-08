@@ -3,7 +3,7 @@ import {
   DbSystemValues,
   SemanticAttributes,
 } from "@opentelemetry/semantic-conventions";
-import { Interceptor, DatabasePool, QueryContext } from "slonik";
+import { Interceptor, QueryContext } from "slonik";
 import type { Telemetry } from "..";
 import { getConfig } from "../../../config";
 
@@ -11,13 +11,19 @@ export const PG_VALUES = "db.postgresql.values";
 export const IDLE_TIMEOUT_MILLIS = "db.postgresql.idle.timeout.millis";
 export const MAX_CLIENT = "db.postgresql.max.client";
 
-export function getSpanOptions({ pool }: { readonly pool: DatabasePool }) {
+export function getSpanOptions({
+  idleTimeout,
+  maximumPoolSize,
+}: {
+  readonly idleTimeout: number;
+  readonly maximumPoolSize: number;
+}) {
   return {
     kind: SpanKind.CLIENT,
     attributes: {
       ...getCommonSpanOptions(),
-      ["db.postgresql.idle.timeout.millis"]: pool.configuration.idleTimeout,
-      ["db.postgresql.max.client"]: pool.configuration.maximumPoolSize,
+      ["db.postgresql.idle.timeout.millis"]: idleTimeout,
+      ["db.postgresql.max.client"]: maximumPoolSize,
     },
   };
 }
