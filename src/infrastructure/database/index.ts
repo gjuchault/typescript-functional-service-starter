@@ -38,19 +38,26 @@ export function createDatabase({
 }: Dependencies): TE.TaskEither<Error, Database> {
   const logger = createLogger("database", { config });
 
-  const pool = createPool(config.databaseUrl, {
-    captureStackTrace: false,
-    statementTimeout: ms("20s"),
-    interceptors: [createSlonikTelemetryInterceptor({ telemetry })],
-  });
+  const idleTimeout = ms("5s");
+  const maximumPoolSize = 10;
 
   return telemetry.withSpan<Error, Database>(
     "database.connect",
-    getSpanOptions({ pool })
+    getSpanOptions({ idleTimeout, maximumPoolSize })
   )(async () => {
     logger.debug(`connecting to database...`)();
 
+    let pool: DatabasePool;
+
     try {
+      pool = await createPool(config.databaseUrl, {
+        captureStackTrace: false,
+        statementTimeout: ms("20s"),
+        interceptors: [createSlonikTelemetryInterceptor({ telemetry })],
+        idleTimeout,
+        maximumPoolSize,
+      });
+
       await pool.query(sql`select 1`);
     } catch (error) {
       return E.left(E.toError(error));
