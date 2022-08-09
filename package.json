@@ -61,7 +61,7 @@
     "@semantic-release/release-notes-generator": "^10.0.3",
     "@types/eslint": "^8.4.5",
     "@types/ms": "^0.7.31",
-    "@types/node": "^18.6.4",
+    "@types/node": "^18.6.5",
     "@types/prompts": "^2.0.14",
     "@typescript-eslint/eslint-plugin": "^5.32.0",
     "@typescript-eslint/parser": "^5.32.0",
