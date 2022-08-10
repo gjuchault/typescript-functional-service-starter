@@ -62,6 +62,5 @@ export function getConfig(configOverride: Partial<Config> = {}): Config {
   return {
     ...config,
     ...configOverride,
-    databaseUrl: process.env.DATABASE_TEST_URL ?? config.databaseUrl,
   };
 }
