@@ -1,126 +1,106 @@
 #!/usr/bin/env node
+import * as Apply from "fp-ts/Apply";
 import * as E from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
-import type { Redis } from "ioredis";
+import * as TE from "fp-ts/lib/TaskEither";
 import { Config, getConfig } from "./config";
-import { createCacheStorage, Cache } from "./infrastructure/cache";
-import { createDatabase, Database } from "./infrastructure/database";
-import {
-  createHttpServer,
-  HttpServer,
-  FastifyServer,
-} from "./infrastructure/http";
+import { chainMergeTaskEither } from "./helpers/chain-merge-task-either";
+import { createCacheStorage } from "./infrastructure/cache";
+import { createDatabase } from "./infrastructure/database";
+import { createHttpServer } from "./infrastructure/http";
 import { createLogger } from "./infrastructure/logger";
 import { createShutdownManager } from "./infrastructure/shutdown";
 import { createTelemetry } from "./infrastructure/telemetry";
 import { bindHttpRoutes } from "./presentation/http";
 
-export async function startApp(configOverride: Partial<Config> = {}) {
-  const config = getConfig(configOverride);
-  const telemetry = await createTelemetry({ config });
+export const startApp = (configOverride: Partial<Config> = {}) =>
+  pipe(
+    getConfig(configOverride),
+    (config) =>
+      Apply.sequenceS(TE.ApplyPar)({
+        telemetry: createTelemetry({ config }),
+        logger: TE.of(createLogger("app", { config })),
+        appStartedTimestamp: TE.of(Date.now()),
+        config: TE.of(config),
+      }),
+    TE.chainFirstIOK(({ logger, config }) =>
+      logger.info(`starting service ${config.name}...`, {
+        version: config.version,
+        nodeVersion: process.version,
+        arch: process.arch,
+        platform: process.platform,
+      })
+    ),
+    chainMergeTaskEither(({ config, telemetry }) => ({
+      cache: createCacheStorage({
+        config,
+        telemetry,
+      }),
+      database: createDatabase({ config, telemetry }),
+    })),
+    chainMergeTaskEither(({ cache, config, telemetry }) => ({
+      http: createHttpServer({
+        config,
+        redis: cache.redis,
+        telemetry,
+      }),
+    })),
+    TE.chainFirst(({ cache, database, http }) =>
+      TE.fromTask(
+        pipe(
+          { cache: cache.cache, database, httpServer: http.httpServer },
+          bindHttpRoutes()
+        )
+      )
+    ),
+    chainMergeTaskEither(
+      ({ cache, config, database, http, logger, telemetry }) => ({
+        shutdown: TE.of(
+          createShutdownManager({
+            logger,
+            cache: cache.cache,
+            database,
+            fastify: http.fastify,
+            telemetry,
+            config,
+            exit: (statusCode?: number) => {
+              logger.flush()();
+              process.exit(statusCode);
+            },
+          })
+        ),
+      })
+    ),
+    TE.chainFirst(({ shutdown }) => shutdown.listenToProcessEvents()),
+    chainMergeTaskEither(({ http, config }) => ({
+      listeningAbsoluteUrl: http.listen(config.address, config.port),
+    })),
+    TE.chainFirstIOK(
+      ({ logger, config, appStartedTimestamp, listeningAbsoluteUrl }) =>
+        logger.info(
+          `${config.name} server listening on ${listeningAbsoluteUrl}`,
+          {
+            version: config.version,
+            nodeVersion: process.version,
+            arch: process.arch,
+            platform: process.platform,
+            startupTime: Date.now() - appStartedTimestamp,
+          }
+        )
+    )
+  );
 
-  const logger = createLogger("app", { config });
+async function main() {
+  const result = await startApp()();
 
-  const appStartedTimestamp = Date.now();
-  logger.info(`starting service ${config.name}...`, {
-    version: config.version,
-    nodeVersion: process.version,
-    arch: process.arch,
-    platform: process.platform,
-  })();
-
-  let database: Database;
-  let redis: Redis;
-  let cache: Cache;
-  let httpServer: HttpServer;
-  let fastify: FastifyServer;
-
-  try {
-    const cacheResult = await createCacheStorage({
-      config,
-      telemetry,
-    })();
-
-    if (E.isLeft(cacheResult)) {
-      logger.error(`${config.name} startup error: cache connection failed`, {
-        error: cacheResult.left,
-      })();
-
-      process.exit(1);
-    }
-
-    ({ cache, redis } = cacheResult.right);
-
-    const databaseResult = await createDatabase({
-      config,
-      telemetry,
-    })();
-
-    if (E.isLeft(databaseResult)) {
-      logger.error(`${config.name} startup error: database connection failed`, {
-        error: databaseResult.left,
-      })();
-
-      process.exit(1);
-    }
-
-    database = databaseResult.right;
-
-    ({ fastify, httpServer } = await createHttpServer({
-      config,
-      redis,
-      telemetry,
-    }));
-  } catch (error) {
-    logger.error(`${config.name} startup error`, {
-      error: (error as Record<string, unknown>).message ?? error,
-    })();
+  if (E.isLeft(result)) {
+    console.error(result.left);
     process.exit(1);
   }
-
-  await pipe({ cache, database, httpServer }, bindHttpRoutes())();
-
-  const shutdown = createShutdownManager({
-    logger,
-    cache,
-    database,
-    fastify,
-    telemetry,
-    config,
-    exit: (statusCode?: number) => {
-      logger.flush()();
-      process.exit(statusCode);
-    },
-  });
-
-  shutdown.listenToProcessEvents();
-
-  const listeningAbsoluteUrl = await fastify.listen({
-    host: config.address,
-    port: config.port,
-  });
-
-  logger.info(`${config.name} server listening on ${listeningAbsoluteUrl}`, {
-    version: config.version,
-    nodeVersion: process.version,
-    arch: process.arch,
-    platform: process.platform,
-    startupTime: Date.now() - appStartedTimestamp,
-  })();
-
-  return {
-    httpServer,
-    fastify,
-    database,
-    cache,
-    shutdown,
-  };
 }
 
 // eslint-disable-next-line unicorn/prefer-module -- Not ESM yet
 if (require.main === module) {
   // eslint-disable-next-line unicorn/prefer-top-level-await -- Not ESM yet
-  startApp().catch((error) => {
-    throw error;
-  });
+  void main();
 }

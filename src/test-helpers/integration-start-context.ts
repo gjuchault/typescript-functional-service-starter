@@ -22,15 +22,19 @@ beforeAll(async () => {
   const app = await startApp({
     port: 1987,
     logLevel: "error",
-  });
+  })();
+
+  if (E.isLeft(app)) {
+    throw E.toError(app.left);
+  }
 
   const {
     database,
-    fastify: httpServer,
+    http: { fastify },
     shutdown: { shutdown },
-  } = app;
+  } = app.right;
 
-  http = httpServer;
+  http = fastify;
 
   const dropAllTables = database.runInConnection((pool) =>
     pool.query(

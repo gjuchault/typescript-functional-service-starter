@@ -84,7 +84,7 @@ export function createShutdownManager({
       )
     );
 
-  function listenToProcessEvents() {
+  const listenToProcessEvents = (): TE.TaskEither<Error, "ok"> => {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     process.addListener("SIGTERM", async () => {
       await shutdown()();
@@ -93,7 +93,9 @@ export function createShutdownManager({
     process.addListener("SIGINT", async () => {
       await shutdown()();
     });
-  }
+
+    return TE.right("ok");
+  };
 
   return { listenToProcessEvents, shutdown };
 }
