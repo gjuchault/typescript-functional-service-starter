@@ -61,50 +61,52 @@ export interface Telemetry {
   ) => IO.IO<UpDownCounter>;
 }
 
-export async function createTelemetry({
+export function createTelemetry({
   config,
 }: {
   readonly config: Config;
-}): Promise<Telemetry> {
-  const logger = createLogger("telemetry", { config });
+}): TE.TaskEither<Error, Telemetry> {
+  return TE.tryCatch(async () => {
+    const logger = createLogger("telemetry", { config });
 
-  const traceExporter: SpanExporter =
-    config.env === "production"
-      ? createPinoSpanExporter({ logger })
-      : new InMemorySpanExporter();
+    const traceExporter: SpanExporter =
+      config.env === "production"
+        ? createPinoSpanExporter({ logger })
+        : new InMemorySpanExporter();
 
-  const metricReader = new PrometheusExporter({
-    preventServerStart: true,
-  });
+    const metricReader = new PrometheusExporter({
+      preventServerStart: true,
+    });
 
-  const sdk = new NodeSDK({
-    traceExporter,
-    metricReader,
-    sampler: new TraceIdRatioBasedSampler(1),
-    resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: config.name,
-      [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: config.env,
-      [SemanticResourceAttributes.PROCESS_PID]: process.pid,
-    }),
-    autoDetectResources: false,
-  });
+    const sdk = new NodeSDK({
+      traceExporter,
+      metricReader,
+      sampler: new TraceIdRatioBasedSampler(1),
+      resource: new Resource({
+        [SemanticResourceAttributes.SERVICE_NAME]: config.name,
+        [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: config.env,
+        [SemanticResourceAttributes.PROCESS_PID]: process.pid,
+      }),
+      autoDetectResources: false,
+    });
 
-  propagation.setGlobalPropagator(new W3CTraceContextPropagator());
+    propagation.setGlobalPropagator(new W3CTraceContextPropagator());
 
-  await sdk.start();
+    await sdk.start();
 
-  const tracer = trace.getTracer(config.name, config.version);
+    const tracer = trace.getTracer(config.name, config.version);
 
-  const meter = apiMetrics.getMeter(config.name, config.version);
+    const meter = apiMetrics.getMeter(config.name, config.version);
 
-  bindSystemMetrics({ meter });
+    bindSystemMetrics({ meter });
 
-  return makeOpentelemetryFunctionalWrapper({
-    sdk,
-    tracer,
-    metricReader,
-    meter,
-  });
+    return makeOpentelemetryFunctionalWrapper({
+      sdk,
+      tracer,
+      metricReader,
+      meter,
+    });
+  }, E.toError);
 }
 
 function makeOpentelemetryFunctionalWrapper({

@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import * as E from "fp-ts/Either";
 import { format } from "prettier";
 import * as ts from "typescript";
 import { compilerOptions } from "../tsconfig.json";
@@ -45,12 +46,16 @@ async function startAppAndFetchSchema() {
   const app = await startApp({
     port,
     logLevel: "error",
-  });
+  })();
 
-  const response = await app.fastify.inject("/docs");
+  if (E.isLeft(app)) {
+    throw E.toError(app.left);
+  }
+
+  const response = await app.right.http.fastify.inject("/docs");
   const schema = response.json();
 
-  await app.shutdown.shutdown(false)();
+  await app.right.shutdown.shutdown(false)();
 
   const parsedSchema = await parse(schema);
   console.log(`(${Date.now() - startTime}ms)`);

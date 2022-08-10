@@ -94,7 +94,7 @@ export type HttpReply = FastifyReply<
 
 const requestTimeout = ms("120s");
 
-export async function createHttpServer({
+export function createHttpServer({
   config,
   redis,
   telemetry,
@@ -102,119 +102,141 @@ export async function createHttpServer({
   readonly config: Config;
   readonly redis: Redis;
   readonly telemetry: Telemetry;
-}) {
-  const logger = createLogger("http", { config });
+}): TE.TaskEither<
+  Error,
+  {
+    fastify: FastifyServer;
+    listen: (host: string, port: number) => TE.TaskEither<Error, string>;
+    httpServer: HttpServer;
+  }
+> {
+  return TE.tryCatch(async () => {
+    const logger = createLogger("http", { config });
 
-  const fastify: FastifyServer = createFastify({
-    requestTimeout,
-    logger: undefined,
-    requestIdHeader: "x-request-id",
-    genReqId() {
-      return randomUUID();
-    },
-  }).withTypeProvider<ZodTypeProvider>();
-
-  fastify.setValidatorCompiler(validatorCompiler);
-  fastify.setSerializerCompiler(serializerCompiler);
-
-  await fastify.register(openTelemetryPlugin, openTelemetryPluginOptions);
-  await fastify.register(metricsPlugin, telemetry);
-
-  await fastify.register(circuitBreaker);
-  await fastify.register(cookie, { secret: config.secret });
-  await fastify.register(cors);
-  await fastify.register(etag);
-  await fastify.register(helmet);
-  await fastify.register(formbody);
-  await fastify.register(multipart);
-  await fastify.register(rateLimit, { redis });
-  await fastify.register(underPressure);
-
-  await fastify.register(swagger, {
-    routePrefix: "/docs",
-    openapi: {
-      info: {
-        title: config.name,
-        description: config.description,
-        version: config.version,
+    const fastify: FastifyServer = createFastify({
+      requestTimeout,
+      logger: undefined,
+      requestIdHeader: "x-request-id",
+      genReqId() {
+        return randomUUID();
       },
-      externalDocs: {
-        url: "https://example.com/docs",
-        description: "More documentation",
+    }).withTypeProvider<ZodTypeProvider>();
+
+    fastify.setValidatorCompiler(validatorCompiler);
+    fastify.setSerializerCompiler(serializerCompiler);
+
+    await fastify.register(openTelemetryPlugin, openTelemetryPluginOptions);
+    await fastify.register(metricsPlugin, telemetry);
+
+    await fastify.register(circuitBreaker);
+    await fastify.register(cookie, { secret: config.secret });
+    await fastify.register(cors);
+    await fastify.register(etag);
+    await fastify.register(helmet);
+    await fastify.register(formbody);
+    await fastify.register(multipart);
+    await fastify.register(rateLimit, { redis });
+    await fastify.register(underPressure);
+
+    await fastify.register(swagger, {
+      routePrefix: "/docs",
+      openapi: {
+        info: {
+          title: config.name,
+          description: config.description,
+          version: config.version,
+        },
+        externalDocs: {
+          url: "https://example.com/docs",
+          description: "More documentation",
+        },
+        tags: [],
       },
-      tags: [],
-    },
-    uiConfig: {
-      docExpansion: "full",
-      deepLinking: false,
-    },
-    staticCSP: true,
-    transform: swaggerTransform,
-  });
+      uiConfig: {
+        docExpansion: "full",
+        deepLinking: false,
+      },
+      staticCSP: true,
+      transform: swaggerTransform,
+    });
 
-  fastify.setNotFoundHandler(
-    {
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      preHandler: fastify.rateLimit(),
-    },
-    function (_request, reply) {
-      void reply.code(404).send();
-    }
-  );
-
-  fastify.addHook("onRequest", (request, _response, done) => {
-    logger.debug(`http request: ${request.method} ${request.url}`, {
-      requestId: getRequestId(request),
-      method: request.method,
-      url: request.url,
-      route: request.routerPath,
-      userAgent: request.headers["user-agent"],
-    })();
-
-    done();
-  });
-
-  fastify.addHook("onResponse", (request, reply, done) => {
-    logger.debug(
-      `http reply: ${request.method} ${request.url} ${reply.statusCode}`,
+    fastify.setNotFoundHandler(
       {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        preHandler: fastify.rateLimit(),
+      },
+      function (_request, reply) {
+        void reply.code(404).send();
+      }
+    );
+
+    fastify.addHook("onRequest", (request, _response, done) => {
+      logger.debug(`http request: ${request.method} ${request.url}`, {
         requestId: getRequestId(request),
         method: request.method,
         url: request.url,
         route: request.routerPath,
         userAgent: request.headers["user-agent"],
-        responseTime: Math.ceil(reply.getResponseTime()),
-        httpStatusCode: reply.statusCode,
-      }
-    )();
+      })();
 
-    done();
-  });
+      done();
+    });
 
-  fastify.addHook("onError", (request, reply, error, done) => {
-    logger.error(`http error (${error.code}): ${error.name} ${error.message}`, {
-      requestId: getRequestId(request),
-      error: {
-        name: error.name,
-        message: error.message,
-        code: error.code,
-        stack: error.stack,
+    fastify.addHook("onResponse", (request, reply, done) => {
+      logger.debug(
+        `http reply: ${request.method} ${request.url} ${reply.statusCode}`,
+        {
+          requestId: getRequestId(request),
+          method: request.method,
+          url: request.url,
+          route: request.routerPath,
+          userAgent: request.headers["user-agent"],
+          responseTime: Math.ceil(reply.getResponseTime()),
+          httpStatusCode: reply.statusCode,
+        }
+      )();
+
+      done();
+    });
+
+    fastify.addHook("onError", (request, reply, error, done) => {
+      logger.error(
+        `http error (${error.code}): ${error.name} ${error.message}`,
+        {
+          requestId: getRequestId(request),
+          error: {
+            name: error.name,
+            message: error.message,
+            code: error.code,
+            stack: error.stack,
+          },
+          method: request.method,
+          url: request.url,
+          route: request.routerPath,
+          userAgent: request.headers["user-agent"],
+          responseTime: Math.ceil(reply.getResponseTime()),
+          httpStatusCode: reply.statusCode,
+        }
+      )();
+
+      done();
+    });
+
+    return {
+      fastify: fastify,
+      listen: (host: string, port: number) => {
+        return TE.tryCatch(
+          () =>
+            fastify.listen({
+              host,
+              port,
+            }),
+          E.toError
+        );
       },
-      method: request.method,
-      url: request.url,
-      route: request.routerPath,
-      userAgent: request.headers["user-agent"],
-      responseTime: Math.ceil(reply.getResponseTime()),
-      httpStatusCode: reply.statusCode,
-    })();
-
-    done();
-  });
-
-  return {
-    fastify: fastify,
-    httpServer: makeFastifyFunctionalWrapper(fastify),
-  };
+      httpServer: makeFastifyFunctionalWrapper(fastify),
+    };
+  }, E.toError);
 }
 
 // This is overridden by fastify-swagger
