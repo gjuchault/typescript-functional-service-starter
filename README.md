@@ -8,12 +8,16 @@ Yet another (opinionated) typescript service starter template.
 
 ## Opinions and limitations
 
+1. Limits the non-pure code to infrastructure layer
+
+Extends the ones from [typescript-service-starter](https://github.com/gjuchault/typescript-service-starter)
+
 1. Tries to follow Domain Driven Development and 3 Layers architecture
 2. As little of externalities requirements as possible (outputs to stdout/stderr, no auth management, etc.)
 3. No dependency on node_modules folder and filesystem at runtime, to allow bundling & small Docker image
 4. Config should not default to either development or production ([link](https://softwareengineering.stackexchange.com/a/375843))
 
-And extends the ones from [typescript-library-starter]()
+And extends the ones from [typescript-library-starter](https://github.com/gjuchault/typescript-library-starter)
 
 1. Relies as much as possible on each included library's defaults
 2. Only rely on GitHub Actions
