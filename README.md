@@ -1,4 +1,4 @@
-# Typescript Service Starter
+# Typescript Functional Service Starter
 
 ![NPM](https://img.shields.io/npm/l/@gjuchault/typescript-functional-service-starter)
 ![NPM](https://img.shields.io/npm/v/@gjuchault/typescript-functional-service-starter)
@@ -21,7 +21,7 @@ And extends the ones from [typescript-library-starter]()
 
 ## Getting started
 
-1. `git clone git@github.com:gjuchault/typescript-functional-service-starter.git my-project`
+1. `npx degit gjuchault/typescript-functional-service-starter my-project`
 2. `cd my-project`
 3. `npm install`
 4. `npm run setup`
