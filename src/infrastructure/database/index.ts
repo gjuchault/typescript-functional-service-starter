@@ -38,8 +38,12 @@ export function createDatabase({
 }: Dependencies): TE.TaskEither<Error, Database> {
   const logger = createLogger("database", { config });
 
-  const idleTimeout = ms("5s");
-  const maximumPoolSize = 10;
+  const {
+    databaseIdleTimeout: idleTimeout,
+    databaseStatementTimeout: statementTimeout,
+    databaseMaximumPoolSize: maximumPoolSize,
+    databaseUrl: url,
+  } = config;
 
   return telemetry.withSpan<Error, Database>(
     "database.connect",
@@ -50,9 +54,9 @@ export function createDatabase({
     let pool: DatabasePool;
 
     try {
-      pool = await createPool(config.databaseUrl, {
+      pool = await createPool(url, {
         captureStackTrace: false,
-        statementTimeout: ms("20s"),
+        statementTimeout,
         interceptors: [createSlonikTelemetryInterceptor({ telemetry })],
         idleTimeout,
         maximumPoolSize,

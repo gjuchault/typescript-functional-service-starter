@@ -1,3 +1,4 @@
+import ms from "ms";
 import "dotenv/config";
 import { z } from "zod";
 
@@ -13,6 +14,9 @@ export interface Config {
   readonly secret: string;
   readonly port: number;
   readonly databaseUrl: string;
+  readonly databaseMaximumPoolSize: number;
+  readonly databaseIdleTimeout: number;
+  readonly databaseStatementTimeout: number;
   readonly redisUrl: string;
 }
 
@@ -45,15 +49,35 @@ const config: Config = {
 
   port: z
     .string()
-    .refine((portAsString) => {
-      const port = Number(portAsString);
-
-      return port > 0 && port < 65_536;
-    })
+    .refine((databaseMaximumPoolSize) =>
+      refineMinMaxInteger(databaseMaximumPoolSize, { min: 10, max: 65_536 })
+    )
     .transform(Number)
     .parse(process.env.PORT),
 
   databaseUrl: z.string().parse(process.env.DATABASE_URL),
+
+  databaseMaximumPoolSize: z
+    .string()
+    .refine((databaseMaximumPoolSize) =>
+      refineMinMaxInteger(databaseMaximumPoolSize, { min: 0, max: 5000 })
+    )
+    .transform(Number)
+    .parse(process.env.DATABASE_MAXIMUM_POOL_SIZE),
+
+  databaseIdleTimeout: z
+    .string()
+    .min(1)
+    .refine(refineMs)
+    .transform(ms)
+    .parse(process.env.DATABASE_IDLE_TIMEOUT),
+
+  databaseStatementTimeout: z
+    .string()
+    .min(1)
+    .refine(refineMs)
+    .transform(ms)
+    .parse(process.env.DATABASE_STATEMENT_TIMEOUT),
 
   redisUrl: z.string().parse(process.env.REDIS_URL),
 };
@@ -63,4 +87,23 @@ export function getConfig(configOverride: Partial<Config> = {}): Config {
     ...config,
     ...configOverride,
   };
+}
+
+export function refineMs(value: string): boolean {
+  // ms might come with a validation function starting v3.0.0
+  // eslint-disable-next-line functional/no-try-statement
+  try {
+    return Number.isSafeInteger(ms(value));
+  } catch {
+    return false;
+  }
+}
+
+export function refineMinMaxInteger(
+  valueAsString: string,
+  { min, max }: { readonly min: number; readonly max: number }
+): boolean {
+  const value = Number(valueAsString);
+
+  return Number.isSafeInteger(value) && value >= min && value <= max;
 }
