@@ -81,7 +81,7 @@ export function createTelemetry({
     const sdk = new NodeSDK({
       traceExporter,
       metricReader,
-      sampler: new TraceIdRatioBasedSampler(1),
+      sampler: new TraceIdRatioBasedSampler(config.tracingSampling),
       resource: new Resource({
         [SemanticResourceAttributes.SERVICE_NAME]: config.name,
         [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: config.env,
