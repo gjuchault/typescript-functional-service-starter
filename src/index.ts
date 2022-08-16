@@ -4,7 +4,6 @@ import * as E from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
 import { Config, getConfig } from "./config";
-import { chainMergeTaskEither } from "./helpers/chain-merge-task-either";
 import { createCacheStorage } from "./infrastructure/cache";
 import { createDatabase } from "./infrastructure/database";
 import { createHttpServer } from "./infrastructure/http";
@@ -31,20 +30,15 @@ export const startApp = (configOverride: Partial<Config> = {}) =>
         platform: process.platform,
       })
     ),
-    chainMergeTaskEither(({ config, telemetry }) => ({
-      cache: createCacheStorage({
-        config,
-        telemetry,
-      }),
-      database: createDatabase({ config, telemetry }),
-    })),
-    chainMergeTaskEither(({ cache, config, telemetry }) => ({
-      http: createHttpServer({
-        config,
-        redis: cache.redis,
-        telemetry,
-      }),
-    })),
+    TE.bind("cache", ({ config, telemetry }) =>
+      createCacheStorage({ config, telemetry })
+    ),
+    TE.bind("database", ({ config, telemetry }) =>
+      createDatabase({ config, telemetry })
+    ),
+    TE.bind("http", ({ cache, config, telemetry }) =>
+      createHttpServer({ config, redis: cache.redis, telemetry })
+    ),
     TE.chainFirst(({ cache, database, http }) =>
       TE.fromTask(
         pipe(
@@ -53,9 +47,10 @@ export const startApp = (configOverride: Partial<Config> = {}) =>
         )
       )
     ),
-    chainMergeTaskEither(
-      ({ cache, config, database, http, logger, telemetry }) => ({
-        shutdown: TE.of(
+    TE.bind(
+      "shutdown",
+      ({ cache, config, database, http, logger, telemetry }) =>
+        TE.of(
           createShutdownManager({
             logger,
             cache: cache.cache,
@@ -68,13 +63,12 @@ export const startApp = (configOverride: Partial<Config> = {}) =>
               process.exit(statusCode);
             },
           })
-        ),
-      })
+        )
     ),
     TE.chainFirst(({ shutdown }) => shutdown.listenToProcessEvents()),
-    chainMergeTaskEither(({ http, config }) => ({
-      listeningAbsoluteUrl: http.listen(config.address, config.port),
-    })),
+    TE.bind("listeningAbsoluteUrl", ({ http, config }) =>
+      http.listen(config.address, config.port)
+    ),
     TE.chainFirstIOK(
       ({ logger, config, appStartedTimestamp, listeningAbsoluteUrl }) =>
         logger.info(

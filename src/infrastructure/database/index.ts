@@ -84,7 +84,6 @@ export function makeSlonikFunctionalWrapper(pool: DatabasePool): Database {
     end() {
       return TE.tryCatch(async () => {
         await pool.end();
-        console.log("POOL END");
         return true;
       }, E.toError);
     },
