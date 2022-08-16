@@ -18,9 +18,7 @@ export const getHealthcheckRepository = (): R.Reader<
 > =>
   pipe(
     R.ask<Dependencies>(),
-    R.chain(({ database }) =>
-      R.of({
-        getHealthcheck: () => getHealthcheck()({ database }),
-      })
-    )
+    R.map(({ database }) => ({
+      getHealthcheck: () => getHealthcheck()({ database }),
+    }))
   );

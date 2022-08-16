@@ -24,23 +24,21 @@ export const bindHttpRoutes = (): RT.ReaderTask<Dependencies, HttpServer> =>
 const bindDocumentationRoute = (): RT.ReaderTask<Dependencies, HttpServer> =>
   pipe(
     RT.ask<Dependencies>(),
-    RT.chain(({ httpServer }) => {
-      return RT.of(
-        httpServer.createRoute({
-          handler(request) {
-            return T.of({
-              status: 200,
-              body: request.server.swagger(),
-            });
+    RT.map(({ httpServer }) =>
+      httpServer.createRoute({
+        handler(request) {
+          return T.of({
+            status: 200,
+            body: request.server.swagger(),
+          });
+        },
+        method: "GET",
+        url: "/docs",
+        schema: {
+          response: {
+            200: z.object({}),
           },
-          method: "GET",
-          url: "/docs",
-          schema: {
-            response: {
-              200: z.object({}),
-            },
-          },
-        })
-      );
-    })
+        },
+      })
+    )
   );

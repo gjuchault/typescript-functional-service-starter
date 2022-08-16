@@ -1,6 +1,5 @@
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
-import ms from "ms";
 import { sql, createPool } from "slonik";
 import {
   ConnectionRoutine,

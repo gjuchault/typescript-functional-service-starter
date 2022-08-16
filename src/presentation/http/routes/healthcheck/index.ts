@@ -37,39 +37,35 @@ export const bindHealthcheckRoutes = (): RT.ReaderTask<
 > =>
   pipe(
     RT.ask<Dependencies>(),
-    RT.chain(({ httpServer, database, cache }) =>
-      RT.of(
-        httpServer.createRoute({
-          method: "GET",
-          url: "/healthcheck",
-          schema: {
-            description: "Check the status of the application",
-            response: {
-              200: healthcheckResponseSchema,
-              500: healthcheckResponseSchema,
-            },
+    RT.map(({ httpServer, database, cache }) =>
+      httpServer.createRoute({
+        method: "GET",
+        url: "/healthcheck",
+        schema: {
+          description: "Check the status of the application",
+          response: {
+            200: healthcheckResponseSchema,
+            500: healthcheckResponseSchema,
           },
-          handler: () =>
-            pipe(
-              { database, cache },
-              getHealthcheckRepository(),
-              (repository) => ({
-                repository,
-                cache,
-              }),
-              getHealthcheck(),
-              T.chain((healthcheckResult) =>
-                T.of({
-                  status: computeStatus(healthcheckResult),
-                  body: {
-                    ...healthcheckResult,
-                    http: "healthy",
-                  },
-                })
-              )
-            ),
-        })
-      )
+        },
+        handler: () =>
+          pipe(
+            { database, cache },
+            getHealthcheckRepository(),
+            (repository) => ({
+              repository,
+              cache,
+            }),
+            getHealthcheck(),
+            T.map((healthcheckResult) => ({
+              status: computeStatus(healthcheckResult),
+              body: {
+                ...healthcheckResult,
+                http: "healthy",
+              },
+            }))
+          ),
+      })
     )
   );
 
