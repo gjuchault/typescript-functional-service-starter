@@ -1,24 +1,24 @@
-import { pipe } from "fp-ts/function";
-import * as RT from "fp-ts/ReaderTask";
-import * as R from "fp-ts/Record";
-import * as S from "fp-ts/string";
-import * as T from "fp-ts/Task";
-import { z } from "zod";
+import { pipe } from 'fp-ts/function';
+import * as RT from 'fp-ts/ReaderTask';
+import * as R from 'fp-ts/Record';
+import * as S from 'fp-ts/string';
+import * as T from 'fp-ts/Task';
+import { z } from 'zod';
 import {
   getHealthcheck,
   GetHealthcheckResult,
-} from "../../../../application/healthcheck/get-healthcheck";
-import type { Cache } from "../../../../infrastructure/cache";
-import type { Database } from "../../../../infrastructure/database";
-import type { HttpServer } from "../../../../infrastructure/http";
-import { getHealthcheckRepository } from "../../../../repository/healthcheck";
+} from '../../../../application/healthcheck/get-healthcheck';
+import type { Cache } from '../../../../infrastructure/cache';
+import type { Database } from '../../../../infrastructure/database';
+import type { HttpServer } from '../../../../infrastructure/http';
+import { getHealthcheckRepository } from '../../../../repository/healthcheck';
 
 const healthcheckResponseSchema = z.object({
-  http: z.literal("healthy"),
-  database: z.union([z.literal("healthy"), z.literal("unhealthy")]),
-  cache: z.union([z.literal("healthy"), z.literal("unhealthy")]),
-  systemMemory: z.union([z.literal("healthy"), z.literal("unhealthy")]),
-  processMemory: z.union([z.literal("healthy"), z.literal("unhealthy")]),
+  http: z.literal('healthy'),
+  database: z.union([z.literal('healthy'), z.literal('unhealthy')]),
+  cache: z.union([z.literal('healthy'), z.literal('unhealthy')]),
+  systemMemory: z.union([z.literal('healthy'), z.literal('unhealthy')]),
+  processMemory: z.union([z.literal('healthy'), z.literal('unhealthy')]),
 });
 
 export type HealthcheckResponseSchema = z.infer<
@@ -39,10 +39,10 @@ export const bindHealthcheckRoutes = (): RT.ReaderTask<
     RT.ask<Dependencies>(),
     RT.map(({ httpServer, database, cache }) =>
       httpServer.createRoute({
-        method: "GET",
-        url: "/healthcheck",
+        method: 'GET',
+        url: '/healthcheck',
         schema: {
-          description: "Check the status of the application",
+          description: 'Check the status of the application',
           response: {
             200: healthcheckResponseSchema,
             500: healthcheckResponseSchema,
@@ -51,7 +51,7 @@ export const bindHealthcheckRoutes = (): RT.ReaderTask<
         handler: () =>
           pipe(
             { database, cache },
-            getHealthcheckRepository(),
+            getHealthcheckRepository,
             (repository) => ({
               repository,
               cache,
@@ -61,7 +61,7 @@ export const bindHealthcheckRoutes = (): RT.ReaderTask<
               status: computeStatus(healthcheckResult),
               body: {
                 ...healthcheckResult,
-                http: "healthy",
+                http: 'healthy',
               },
             }))
           ),
@@ -74,7 +74,7 @@ export function computeStatus(healthcheckResult: GetHealthcheckResult): number {
     { ...healthcheckResult },
     // eslint-disable-next-line unicorn/no-array-reduce, unicorn/no-array-callback-reference
     R.reduce(S.Ord)(200, (accumulator, statusEntry) =>
-      statusEntry !== "healthy" || accumulator === 500 ? 500 : accumulator
+      statusEntry !== 'healthy' || accumulator === 500 ? 500 : accumulator
     )
   );
 }
