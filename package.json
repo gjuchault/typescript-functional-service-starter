@@ -59,7 +59,7 @@
     "@semantic-release/github": "^8.0.5",
     "@semantic-release/npm": "^9.0.1",
     "@semantic-release/release-notes-generator": "^10.0.3",
-    "@types/eslint": "^8.4.5",
+    "@types/eslint": "^8.4.6",
     "@types/ms": "^0.7.31",
     "@types/node": "^18.7.6",
     "@types/prompts": "^2.0.14",
