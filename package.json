@@ -81,7 +81,7 @@
     "get-port": "^6.1.2",
     "json-schema-to-typescript": "^11.0.2",
     "json-schema-to-zod": "^0.1.5",
-    "launch-editor": "^2.5.0",
+    "launch-editor": "^2.6.0",
     "nyc": "^15.1.0",
     "pino-pretty": "^9.0.1",
     "prettier": "^2.7.1",
