@@ -104,7 +104,7 @@
     "@fastify/multipart": "^7.1.0",
     "@fastify/rate-limit": "^7.3.0",
     "@fastify/swagger": "^7.4.1",
-    "@fastify/under-pressure": "^8.0.0",
+    "@fastify/under-pressure": "^8.1.0",
     "@opentelemetry/api": "^1.1.0",
     "@opentelemetry/api-metrics": "^0.31.0",
     "@opentelemetry/core": "^1.5.0",
