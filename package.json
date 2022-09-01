@@ -116,7 +116,7 @@
     "dotenv": "^16.0.2",
     "fastify": "^4.5.3",
     "fastify-plugin": "^4.2.1",
-    "fp-ts": "^2.12.2",
+    "fp-ts": "^2.12.3",
     "http-terminator": "^3.2.0",
     "ioredis": "^5.2.3",
     "ms": "^2.1.3",
