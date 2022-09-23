@@ -80,7 +80,7 @@
     "eslint-plugin-unicorn": "^43.0.1",
     "get-port": "^6.1.2",
     "json-schema-to-typescript": "^11.0.2",
-    "json-schema-to-zod": "^0.1.5",
+    "json-schema-to-zod": "^0.2.0",
     "launch-editor": "^2.6.0",
     "nyc": "^15.1.0",
     "pino-pretty": "^9.1.0",
