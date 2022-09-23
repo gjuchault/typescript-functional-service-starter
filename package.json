@@ -68,7 +68,7 @@
     "c8": "^7.11.3",
     "camelcase": "^6.3.0",
     "cspell": "^6.10.1",
-    "esbuild": "^0.15.8",
+    "esbuild": "^0.15.9",
     "eslint": "^8.23.1",
     "eslint-config-prettier": "^8.5.0",
     "eslint-import-resolver-typescript": "^3.5.1",
