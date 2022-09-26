@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import * as E from "fp-ts/lib/Either";
-import { sql, TaggedTemplateLiteralInvocation } from "slonik";
+import { sql } from "slonik";
 import { InputMigrations, Umzug } from "umzug";
 import type { Database } from ".";
 
@@ -92,11 +92,7 @@ export async function readMigrations(database: Database) {
           "utf8"
         );
 
-        const query: TaggedTemplateLiteralInvocation = {
-          sql: content,
-          type: "SLONIK_TOKEN_SQL",
-          values: [],
-        };
+        const query = sql([content] as unknown as TemplateStringsArray);
 
         return {
           name: file.slice(file.indexOf("_") + 1, -1 * ".sql".length),
