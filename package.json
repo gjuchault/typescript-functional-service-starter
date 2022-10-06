@@ -83,7 +83,7 @@
     "json-schema-to-zod": "^0.2.0",
     "launch-editor": "^2.6.0",
     "nyc": "^15.1.0",
-    "pino-pretty": "^9.1.0",
+    "pino-pretty": "^9.1.1",
     "prettier": "^2.7.1",
     "prompts": "^2.4.2",
     "semantic-release": "^19.0.5",
