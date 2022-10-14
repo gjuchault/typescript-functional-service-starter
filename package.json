@@ -115,7 +115,7 @@
     "@opentelemetry/semantic-conventions": "^1.7.0",
     "dotenv": "^16.0.3",
     "fastify": "^4.8.1",
-    "fastify-plugin": "^4.2.1",
+    "fastify-plugin": "^4.3.0",
     "fp-ts": "^2.12.3",
     "http-terminator": "^3.2.0",
     "ioredis": "^5.2.3",
