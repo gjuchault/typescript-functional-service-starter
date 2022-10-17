@@ -139,7 +139,6 @@ export function createHttpServer({
     await fastify.register(underPressure);
 
     await fastify.register(swagger, {
-      routePrefix: "/docs",
       openapi: {
         info: {
           title: config.name,
@@ -152,11 +151,6 @@ export function createHttpServer({
         },
         tags: [],
       },
-      uiConfig: {
-        docExpansion: "full",
-        deepLinking: false,
-      },
-      staticCSP: true,
       transform: swaggerTransform,
     });
 
