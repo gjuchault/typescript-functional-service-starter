@@ -44,12 +44,15 @@ export function taskEitherWithTimeout<E, A>(
         clearTimeout(timeoutHandle);
 
         switch (result._tag) {
-          case "Timeout":
+          case "Timeout": {
             return E.left(new Error("Promise timed out"));
-          case "Left":
+          }
+          case "Left": {
             return E.left(E.toError(result));
-          case "Right":
+          }
+          case "Right": {
             return E.right(result.right);
+          }
         }
       });
     };

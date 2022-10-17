@@ -29,23 +29,28 @@ export function bindSystemMetrics({ meter }: { readonly meter: Meter }) {
 
     gauge.addCallback((observableResult) => {
       switch (key) {
-        case "min":
+        case "min": {
           observableResult.observe(eventLoopDelay.min / 1e9);
           break;
-        case "max":
+        }
+        case "max": {
           observableResult.observe(eventLoopDelay.max / 1e9);
           break;
-        case "mean":
+        }
+        case "mean": {
           observableResult.observe(eventLoopDelay.mean / 1e9);
           break;
-        case "stddev":
+        }
+        case "stddev": {
           observableResult.observe(eventLoopDelay.stddev / 1e9);
           break;
+        }
         case "exceeds":
         case "percentile":
         case "percentiles":
-        case "reset":
+        case "reset": {
           break;
+        }
       }
     });
   }
@@ -109,7 +114,7 @@ export function bindSystemMetrics({ meter }: { readonly meter: Meter }) {
 
     gauge.addCallback((observableResult) => {
       switch (key) {
-        case "heapTotal":
+        case "heapTotal": {
           try {
             sharedMemoryUsage = process.memoryUsage();
             observableResult.observe(sharedMemoryUsage.heapTotal);
@@ -117,15 +122,19 @@ export function bindSystemMetrics({ meter }: { readonly meter: Meter }) {
             // ignore
           }
           break;
-        case "heapUsed":
+        }
+        case "heapUsed": {
           observableResult.observe(sharedMemoryUsage.heapUsed);
           break;
-        case "external":
+        }
+        case "external": {
           observableResult.observe(sharedMemoryUsage.external);
           break;
+        }
         case "rss":
-        case "arrayBuffers":
+        case "arrayBuffers": {
           break;
+        }
       }
     });
   }
