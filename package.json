@@ -97,7 +97,7 @@
     "@autotelic/fastify-opentelemetry": "^0.17.0",
     "@fastify/circuit-breaker": "^3.0.0",
     "@fastify/cookie": "^8.3.0",
-    "@fastify/cors": "^8.1.0",
+    "@fastify/cors": "^8.1.1",
     "@fastify/etag": "^4.1.0",
     "@fastify/formbody": "^7.3.0",
     "@fastify/helmet": "^10.0.2",
