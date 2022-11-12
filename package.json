@@ -94,7 +94,7 @@
     "vitest": "^0.24.5"
   },
   "dependencies": {
-    "@autotelic/fastify-opentelemetry": "^0.17.0",
+    "@autotelic/fastify-opentelemetry": "^0.17.1",
     "@fastify/circuit-breaker": "^3.0.0",
     "@fastify/cookie": "^8.3.0",
     "@fastify/cors": "^8.2.0",
