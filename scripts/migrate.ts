@@ -15,7 +15,7 @@ const migrationsPath = path.join(__dirname, "../migrations");
 
 export async function migrate(args = process.argv.slice(2), exit = true) {
   const database = makeSlonikFunctionalWrapper(
-    createPool(getConfig().databaseUrl)
+    await createPool(getConfig().databaseUrl)
   );
   const migrationFiles = await readMigrations(database);
   const umzug = buildMigration({
