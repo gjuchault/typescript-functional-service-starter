@@ -100,7 +100,7 @@
     "@fastify/cors": "^8.2.0",
     "@fastify/etag": "^4.1.0",
     "@fastify/formbody": "^7.3.0",
-    "@fastify/helmet": "^10.0.2",
+    "@fastify/helmet": "^10.1.0",
     "@fastify/multipart": "^7.3.0",
     "@fastify/rate-limit": "^7.5.0",
     "@fastify/swagger": "^8.1.0",
