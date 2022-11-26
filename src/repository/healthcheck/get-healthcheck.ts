@@ -3,6 +3,7 @@ import * as RT from "fp-ts/ReaderTask";
 import * as T from "fp-ts/Task";
 import * as TE from "fp-ts/TaskEither";
 import { sql } from "slonik";
+import { z } from "zod";
 import type {
   Database,
   DatabasePoolConnection,
@@ -25,7 +26,8 @@ export const getHealthcheck = (): RT.ReaderTask<
     RT.chain(({ database }) =>
       RT.fromTask(
         pipe(
-          (pool: DatabasePoolConnection) => pool.query(sql`select 1`),
+          (pool: DatabasePoolConnection) =>
+            pool.query(sql.type(z.unknown())`select 1`),
           database.runInConnection,
           TE.fold<Error, unknown, GetHealthcheckResult>(
             () => T.of({ outcome: "unhealthy" }),

@@ -6,6 +6,7 @@ import {
   DatabasePool,
   TransactionFunction,
 } from "slonik/dist/src/types";
+import { z } from "zod";
 import type { Config } from "../../config";
 import { createLogger } from "../logger";
 import type { Telemetry } from "../telemetry";
@@ -61,7 +62,7 @@ export function createDatabase({
         maximumPoolSize,
       });
 
-      await pool.query(sql`select 1`);
+      await pool.query(sql.type(z.unknown())`select 1`);
     } catch (error) {
       return E.left(E.toError(error));
     }
