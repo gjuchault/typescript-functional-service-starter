@@ -15,7 +15,7 @@ describe("GET /healthcheck", () => {
     it("returns 200", () => {
       const body = response.json<HealthcheckResponseSchema>();
 
-      if (typeof process.env.CI === "undefined") {
+      if (process.env.CI === undefined) {
         expect(response.statusCode).toBe(200);
         expect(body.database).toBe("healthy");
         expect(body.cache).toBe("healthy");

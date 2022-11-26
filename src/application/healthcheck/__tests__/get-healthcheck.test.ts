@@ -42,7 +42,7 @@ describe("getHealthcheck()", () => {
         expect(result.database).toBe("healthy");
 
         // in Github Actions, process memory seems to be low or static
-        if (typeof process.env.CI === "undefined") {
+        if (process.env.CI === undefined) {
           expect(result.systemMemory).toBe("healthy");
           expect(result.processMemory).toBe("healthy");
         }
@@ -66,7 +66,7 @@ describe("getHealthcheck()", () => {
         expect(result.database).toBe("healthy");
 
         // in Github Actions, process memory seems to be low or static
-        if (typeof process.env.CI === "undefined") {
+        if (process.env.CI === undefined) {
           expect(result.systemMemory).toBe("healthy");
           expect(result.processMemory).toBe("healthy");
         }
@@ -90,7 +90,7 @@ describe("getHealthcheck()", () => {
         expect(result.database).toBe("unhealthy");
 
         // in Github Actions, process memory seems to be low or static
-        if (typeof process.env.CI === "undefined") {
+        if (process.env.CI === undefined) {
           expect(result.systemMemory).toBe("healthy");
           expect(result.processMemory).toBe("healthy");
         }
@@ -114,7 +114,7 @@ describe("getHealthcheck()", () => {
         expect(result.database).toBe("unhealthy");
 
         // in Github Actions, process memory seems to be low or static
-        if (typeof process.env.CI === "undefined") {
+        if (process.env.CI === undefined) {
           expect(result.systemMemory).toBe("healthy");
           expect(result.processMemory).toBe("healthy");
         }
