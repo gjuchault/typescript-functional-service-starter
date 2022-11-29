@@ -47,6 +47,7 @@
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "test:setup": "node -r ./esbuild-hook ./scripts/testSetup",
+    "test:healthcheck": "node -r ./esbuild-hook ./scripts/test-healthcheck",
     "spell:check": "cspell \"{README.md,CODE_OF_CONDUCT.md,CONTRIBUTING.md,.github/*.md,src/**/*.ts}\"",
     "cz": "cz",
     "semantic-release": "semantic-release"

@@ -88,6 +88,21 @@ jobs:
           SECRET: 00000000-0000-0000-0000-000000000000
           TRACING_SAMPLING: 0.2
 
+      - name: Healthcheck test
+        run: npm run test:healthcheck
+        env:
+          NODE_ENV: test
+          LOG_LEVEL: debug
+          PORT: 8080
+          ADDRESS: 0.0.0.0
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_MAXIMUM_POOL_SIZE: 10
+          DATABASE_IDLE_TIMEOUT: 5s
+          DATABASE_STATEMENT_TIMEOUT: 20s
+          REDIS_URL: ${{ env.REDIS_URL }}
+          SECRET: 00000000-0000-0000-0000-000000000000
+          TRACING_SAMPLING: 0.2
+
       - name: Setup test
         run: npm run test:setup
 
