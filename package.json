@@ -99,7 +99,7 @@
     "@fastify/circuit-breaker": "^3.0.0",
     "@fastify/cookie": "^8.3.0",
     "@fastify/cors": "^8.2.0",
-    "@fastify/etag": "^4.1.0",
+    "@fastify/etag": "^4.2.0",
     "@fastify/formbody": "^7.3.0",
     "@fastify/helmet": "^10.1.0",
     "@fastify/multipart": "^7.3.0",
