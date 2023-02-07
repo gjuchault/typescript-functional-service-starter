@@ -69,7 +69,7 @@
     "c8": "^7.12.0",
     "camelcase": "^6.3.0",
     "cspell": "^6.18.0",
-    "esbuild": "^0.15.18",
+    "esbuild": "^0.17.6",
     "eslint": "^8.30.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-import-resolver-typescript": "^3.5.2",
