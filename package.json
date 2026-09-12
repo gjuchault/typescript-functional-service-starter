@@ -115,7 +115,7 @@
     "@opentelemetry/sdk-trace-base": "^1.8.0",
     "@opentelemetry/semantic-conventions": "^1.8.0",
     "dotenv": "^16.0.3",
-    "fastify": "^4.10.2",
+    "fastify": "^5.12.4",
     "fastify-plugin": "^4.4.0",
     "fp-ts": "^2.13.1",
     "http-terminator": "^3.2.0",
